@@ -5,6 +5,7 @@ import { render as renderExercises } from './views/exercises.js';
 import { render as renderRecords } from './views/records.js';
 import { render as renderSettings } from './views/settings.js';
 import { render as renderOnboarding } from './views/onboarding.js';
+import { render as renderProfile } from './views/profile.js';
 
 // Назва маршруту → заголовок і функція, що малює екран
 const routes = {
@@ -14,6 +15,7 @@ const routes = {
   records:   { title: 'Рекорди',    render: renderRecords },
   settings:  { title: 'Налаштування', render: renderSettings },
   onboarding: { title: 'Знайомство', render: renderOnboarding },
+  profile:   { title: 'Профіль',    render: renderProfile },
 };
 
 const view = document.getElementById('view');

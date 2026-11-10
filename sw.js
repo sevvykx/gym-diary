@@ -20,6 +20,7 @@ const FILES = [
   'js/views/records.js',
   'js/views/settings.js',
   'js/views/onboarding.js',
+  'js/views/profile.js',
   'vendor/dexie.mjs',
   'icons/icon.svg',
   'icons/icon-192.png',
