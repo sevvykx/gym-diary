@@ -488,3 +488,18 @@ a.card:active { background: var(--surface-2); }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* ===== Повідомлення про результат дії ===== */
+.notice {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(62, 207, 142, 0.12);
+  color: var(--success);
+  font-size: 15px;
+}
+
+.notice.is-error {
+  background: rgba(255, 93, 93, 0.12);
+  color: var(--danger);
+}

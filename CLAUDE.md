@@ -54,7 +54,7 @@ db.version(1).stores({
 - [x] 5. «Минулого разу» в кожній вправі (`getLastPerformance` у db.js; тап по підходу підставляє його в поля)
 - [x] 6. Історія: список `#/history` і деталі `#/history/:id` (після завершення тренування відкриваються його деталі)
 - [x] 7. Рекорди (рахуються в `js/views/records.js` з усіх підходів)
-- [ ] 8. Експорт / імпорт JSON
+- [x] 8. Експорт / імпорт JSON (`exportAll`, `checkBackup`, `importAll` у db.js; на телефоні файл віддається через меню «Поділитися»)
 - [ ] 9. PWA: іконки, manifest, Service Worker
 - [ ] 10. GitHub + GitHub Pages + встановлення на iPhone
 - [ ] 11. Шліфування

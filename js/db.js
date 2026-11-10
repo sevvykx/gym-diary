@@ -57,3 +57,53 @@ export async function getLastPerformance(exerciseId, currentWorkoutId) {
     sets: sets.filter((s) => s.workoutId === latest.workoutId),
   };
 }
+
+// ===== Резервна копія =====
+
+// Усі дані одним об'єктом, готовим для запису у файл
+export async function exportAll() {
+  return {
+    app: 'gym-diary',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    exercises: await db.exercises.toArray(),
+    workouts: await db.workouts.toArray(),
+    sets: await db.sets.toArray(),
+  };
+}
+
+// Перевіряє, що об'єкт схожий на нашу копію. Повертає текст помилки або null, якщо все гаразд.
+export function checkBackup(data) {
+  const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+
+  if (data?.app !== 'gym-diary') return 'Це не файл копії щоденника тренувань.';
+  if (data.version > 1) return 'Файл створено новішою версією програми.';
+
+  const ok =
+    Array.isArray(data.exercises) &&
+    Array.isArray(data.workouts) &&
+    Array.isArray(data.sets) &&
+    data.exercises.every((e) =>
+      isNumber(e?.id) && typeof e.name === 'string' && typeof e.muscleGroup === 'string') &&
+    data.workouts.every((w) =>
+      isNumber(w?.id) && isNumber(w.startedAt) && Array.isArray(w.exerciseIds) &&
+      (w.finishedAt === null || isNumber(w.finishedAt))) &&
+    data.sets.every((s) =>
+      isNumber(s?.id) && isNumber(s.workoutId) && isNumber(s.exerciseId) &&
+      isNumber(s.weight) && isNumber(s.reps));
+
+  return ok ? null : 'Файл копії пошкоджений.';
+}
+
+// Замінює всі дані вмістом копії. Усе в одній транзакції:
+// якщо щось піде не так, зміни скасуються і старі дані залишаться.
+export function importAll(data) {
+  return db.transaction('rw', db.exercises, db.workouts, db.sets, async () => {
+    await db.exercises.clear();
+    await db.workouts.clear();
+    await db.sets.clear();
+    await db.exercises.bulkAdd(data.exercises);
+    await db.workouts.bulkAdd(data.workouts);
+    await db.sets.bulkAdd(data.sets);
+  });
+}
