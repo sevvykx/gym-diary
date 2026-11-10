@@ -7,19 +7,21 @@ import { render as renderSettings } from './views/settings.js';
 import { render as renderOnboarding } from './views/onboarding.js';
 import { render as renderProfile } from './views/profile.js';
 
-// Назва маршруту → заголовок і функція, що малює екран
+// Назва маршруту → заголовок і функція, що малює екран.
+// parent: екран відкривається з профілю, тому має кнопку «назад» і підсвічує його вкладку.
 const routes = {
   workout:   { title: 'Тренування', render: renderWorkout },
-  history:   { title: 'Історія',    render: renderHistory },
-  exercises: { title: 'Вправи',     render: renderExercises },
-  records:   { title: 'Рекорди',    render: renderRecords },
-  settings:  { title: 'Налаштування', render: renderSettings },
-  onboarding: { title: 'Знайомство', render: renderOnboarding },
   profile:   { title: 'Профіль',    render: renderProfile },
+  history:   { title: 'Історія',    render: renderHistory,   parent: 'profile' },
+  exercises: { title: 'Вправи',     render: renderExercises, parent: 'profile' },
+  records:   { title: 'Рекорди',    render: renderRecords,   parent: 'profile' },
+  settings:  { title: 'Налаштування', render: renderSettings, parent: 'profile' },
+  onboarding: { title: 'Знайомство', render: renderOnboarding },
 };
 
 const view = document.getElementById('view');
 const title = document.getElementById('title');
+const back = document.getElementById('back');
 
 // '#/history/7' → name = 'history', param = '7'
 function parseHash() {
@@ -41,8 +43,12 @@ async function navigate() {
   document.body.classList.toggle('is-onboarding', name === 'onboarding');
   title.textContent = route.title;
   document.querySelectorAll('.tabbar a').forEach((a) => {
-    a.classList.toggle('active', a.dataset.route === name);
+    a.classList.toggle('active', a.dataset.route === (route.parent ?? name));
   });
+
+  // «Назад»: з деталей (#/history/7) до списку, зі списку до профілю
+  back.hidden = !route.parent;
+  if (route.parent) back.href = param ? `#/${name}` : `#/${route.parent}`;
 
   view.innerHTML = '';
   window.scrollTo(0, 0);

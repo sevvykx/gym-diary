@@ -67,6 +67,20 @@ button, a, .tabbar a { touch-action: manipulation; }
   font-weight: 700;
 }
 
+/* Кнопка «назад» у верхній смузі */
+.back {
+  width: 44px;
+  height: 44px;
+  margin-left: -14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 32px;
+  line-height: 1;
+}
+
 /* ===== Вміст екрана ===== */
 #view {
   padding:
