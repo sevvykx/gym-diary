@@ -1,0 +1,168 @@
+/* ===== Кольори та розміри ===== */
+:root {
+  --bg: #0e0f13;
+  --surface: #181a20;
+  --surface-2: #22252d;
+  --border: #2c3039;
+  --text: #f2f3f5;
+  --text-dim: #8b909c;
+  --accent: #4f8cff;
+  --accent-press: #3a72dc;
+  --danger: #ff5d5d;
+  --success: #3ecf8e;
+
+  --radius: 14px;
+  --tap: 52px;            /* мінімальна висота кнопок */
+  --topbar-h: 52px;
+  --tabbar-h: 60px;
+
+  /* Відступи під «чубчик» і нижню смужку iPhone */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* ===== База ===== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Без подвійного тапу-зуму на кнопках */
+button, a, .tabbar a { touch-action: manipulation; }
+
+/* ===== Верхня панель ===== */
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  height: calc(var(--topbar-h) + var(--safe-top));
+  padding: var(--safe-top) calc(16px + var(--safe-right)) 0 calc(16px + var(--safe-left));
+  display: flex;
+  align-items: center;
+  background: rgba(14, 15, 19, 0.85);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ===== Вміст екрана ===== */
+#view {
+  padding:
+    calc(var(--topbar-h) + var(--safe-top) + 16px)
+    calc(16px + var(--safe-right))
+    calc(var(--tabbar-h) + var(--safe-bottom) + 24px)
+    calc(16px + var(--safe-left));
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ===== Нижня навігація ===== */
+.tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  display: flex;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: rgba(24, 26, 32, 0.92);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+}
+
+.tabbar a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tabbar svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tabbar a.active { color: var(--accent); }
+
+/* ===== Кнопки ===== */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.btn:active { filter: brightness(1.25); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:active { background: var(--accent-press); filter: none; }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.btn-big { min-height: 64px; font-size: 19px; }
+
+/* ===== Картки та порожній стан ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 48px 16px;
+}
+
+.empty h2 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 20px;
+}
+
+.empty p { margin: 0 0 24px; }

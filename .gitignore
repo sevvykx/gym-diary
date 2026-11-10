@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Редактори
+.vscode/
+.idea/
+
+# Логи та тимчасове
+*.log
+node_modules/
+
+# Локальні налаштування Claude Code (особисті дозволи)
+.claude/settings.local.json
