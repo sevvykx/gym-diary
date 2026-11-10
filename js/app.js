@@ -45,6 +45,11 @@ async function start() {
   requestPersistentStorage().then((ok) => console.log('Постійне сховище:', ok));
   window.addEventListener('hashchange', navigate);
   navigate();
+
+  // Service Worker зберігає файли програми в кеші, щоб вона відкривалась без інтернету
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(console.error);
+  }
 }
 
 start();

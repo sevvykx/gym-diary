@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Фон на весь квадрат без прозорості: кути заокруглює сама система -->
+  <rect width="512" height="512" fill="#181a20"/>
+  <!-- Гантеля: гриф, великі та малі диски -->
+  <g fill="#4f8cff">
+    <rect x="176" y="236" width="160" height="40" rx="8"/>
+    <rect x="132" y="164" width="52" height="184" rx="16"/>
+    <rect x="328" y="164" width="52" height="184" rx="16"/>
+    <rect x="88" y="204" width="36" height="104" rx="14"/>
+    <rect x="388" y="204" width="36" height="104" rx="14"/>
+  </g>
+</svg>
