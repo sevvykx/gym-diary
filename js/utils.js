@@ -52,3 +52,9 @@ export function formatDuration(ms) {
   if (minutes < 60) return `${minutes} хв`;
   return `${Math.floor(minutes / 60)} год ${minutes % 60} хв`;
 }
+
+// Власна вага з поля вводу: "78,5" → 78.5. Повертає null, якщо це не число від 20 до 300
+export function parseBodyWeight(text) {
+  const weight = Number(text.trim().replace(',', '.'));
+  return weight >= 20 && weight <= 300 ? weight : null;
+}

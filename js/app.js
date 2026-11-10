@@ -12,7 +12,7 @@ const routes = {
   history:   { title: 'Історія',    render: renderHistory },
   exercises: { title: 'Вправи',     render: renderExercises },
   records:   { title: 'Рекорди',    render: renderRecords },
-  settings:  { title: 'Дані',       render: renderSettings },
+  settings:  { title: 'Налаштування', render: renderSettings },
   onboarding: { title: 'Знайомство', render: renderOnboarding },
 };
 

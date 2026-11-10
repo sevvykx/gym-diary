@@ -526,3 +526,6 @@ a.card:active { background: var(--surface-2); }
 
 /* Другорядна кнопка без фону («Назад»), щоб не плутати її з варіантами */
 .btn-quiet { background: transparent; color: var(--text-dim); font-weight: 500; }
+
+/* Відступ між заголовком картки і першим полем форми (картка «Профіль») */
+.card-title + .field { margin-top: 12px; }

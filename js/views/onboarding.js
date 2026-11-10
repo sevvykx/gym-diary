@@ -1,26 +1,30 @@
 import { saveProfile } from '../db.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, parseBodyWeight } from '../utils.js';
 
 // Кроки вступу. key: поле профілю. options: [значення для бази, підпис на кнопці].
 // Кроки без options (ім'я та вага) мають поле для введення.
-const STEPS = [
-  { key: 'name', title: 'Як тебе звати?' },
+// label: коротка назва поля для картки «Профіль» у налаштуваннях.
+export const STEPS = [
+  { key: 'name', label: "Ім'я", title: 'Як тебе звати?' },
   {
     key: 'goal',
+    label: 'Ціль',
     title: 'Яка твоя ціль?',
     options: [['strength', 'Сила'], ['muscle', "М'язова маса"], ['fitness', 'Загальна форма']],
   },
   {
     key: 'experience',
+    label: 'Досвід',
     title: 'Скільки вже тренуєшся?',
     options: [['beginner', 'Новачок'], ['intermediate', '0,5–2 роки'], ['advanced', '2+ роки']],
   },
   {
     key: 'workoutsPerWeek',
+    label: 'Тренувань на тиждень',
     title: 'Скільки тренувань на тиждень?',
     options: [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6']],
   },
-  { key: 'bodyWeight', title: 'Яка твоя вага?' },
+  { key: 'bodyWeight', label: 'Власна вага, кг', title: 'Яка твоя вага?' },
 ];
 
 export function render(el) {
@@ -109,8 +113,8 @@ function draw(el, answers, index) {
       answers.name = value;
       draw(el, answers, index + 1);
     } else {
-      const weight = Number(value.replace(',', '.'));
-      if (!(weight >= 20 && weight <= 300)) {
+      const weight = parseBodyWeight(value);
+      if (weight === null) {
         return showError('Введи вагу числом, наприклад 78,5, або натисни «Пропустити»');
       }
       finish(answers, weight);
