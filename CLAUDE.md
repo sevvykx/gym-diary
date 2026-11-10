@@ -7,7 +7,7 @@ PWA-щоденник тренувань для спортзалу. Встано�
 - Єдина бібліотека: **Dexie.js**, локальна копія в `vendor/dexie.mjs` (не CDN, для офлайну).
 - Навігація: hash-роутер у `js/app.js` (`#/workout`, `#/history/7`).
 - Офлайн: Service Worker `sw.js` у корені. Віддає файли з кешу й оновлює їх у фоні, тож нова версія з'являється з другого запуску. На `localhost` навпаки: спершу мережа, кеш лише без неї (на `127.0.0.1` поводиться як на телефоні). **Новий файл у проєкті треба дописати в список `FILES` у `sw.js`.** Номер у `CACHE` міняти лише щоб примусово скинути кеш.
-- Хостинг: GitHub Pages.
+- Хостинг: GitHub Pages з гілки `main` (корінь), без Actions і Releases. Репозиторій https://github.com/sevvykx/gym-diary, сайт https://sevvykx.github.io/gym-diary/ (підпапка, тому всі шляхи відносні). Оновлення = `git push`, Pages перезбирається сам за ~1 хв. `gh` встановлений і залогінений як `sevvykx`.
 
 ## Запуск локально
 ```bash
@@ -56,5 +56,5 @@ db.version(1).stores({
 - [x] 7. Рекорди (рахуються в `js/views/records.js` з усіх підходів)
 - [x] 8. Експорт / імпорт JSON (`exportAll`, `checkBackup`, `importAll` у db.js; на телефоні файл віддається через меню «Поділитися»)
 - [x] 9. PWA: іконки (PNG згенеровані з `icons/icon.svg` через `qlmanage` + `sips`), manifest, Service Worker
-- [ ] 10. GitHub + GitHub Pages + встановлення на iPhone
+- [x] 10. GitHub + GitHub Pages (встановлення на iPhone перевіряє користувач)
 - [ ] 11. Шліфування
