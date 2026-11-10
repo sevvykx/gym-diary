@@ -201,7 +201,7 @@ button, a, .tabbar a { touch-action: manipulation; }
 }
 
 .list > li + li { border-top: 1px solid var(--border); }
-.list-item .grow { flex: 1; min-width: 0; }
+.grow { flex: 1; min-width: 0; }
 
 .badge {
   padding: 2px 8px;
@@ -425,3 +425,42 @@ button, a, .tabbar a { touch-action: manipulation; }
 }
 
 .last-set:active { background: var(--accent); }
+
+/* ===== Історія ===== */
+a.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.card:active { background: var(--surface-2); }
+
+.card-title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.card-sub {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.card-sub + .card-sub { margin-top: 4px; }
+.chevron { color: var(--text-dim); font-size: 24px; }
+
+/* Обрізає довгий текст трьома крапками */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-head { margin: 20px 4px 16px; }
+.page-head h2 { margin: 0 0 4px; font-size: 22px; }
+
+/* Список підходів без кнопок видалення (в історії): без зайвих відступів */
+.sets-flush { margin: 10px 0 -10px; }

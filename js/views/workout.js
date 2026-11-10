@@ -140,6 +140,9 @@ async function renderActive(el, workout) {
         } else {
           if (!confirm('Завершити тренування?')) return;
           await db.workouts.update(workout.id, { finishedAt: Date.now() });
+          drafts.clear();
+          location.hash = `#/history/${workout.id}`; // одразу показуємо підсумок
+          return;
         }
         drafts.clear();
         break;
