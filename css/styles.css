@@ -464,3 +464,27 @@ a.card:active { background: var(--surface-2); }
 
 /* Список підходів без кнопок видалення (в історії): без зайвих відступів */
 .sets-flush { margin: 10px 0 -10px; }
+
+/* ===== Рекорди ===== */
+.section-title:first-child { margin-top: 4px; }
+
+.record {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.card-title + .record { margin-top: 10px; }
+.record:last-child { padding-bottom: 0; }
+.record p { margin: 0; }
+.record-right { text-align: right; }
+.record-note { color: var(--text-dim); font-size: 13px; }
+
+.record-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

@@ -20,9 +20,12 @@ export function formatTime(timestamp) {
   return new Date(timestamp).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Дата у форматі "8 листопада"
+// Дата у форматі "8 листопада" (рік додаємо, якщо він не поточний)
 export function formatDate(timestamp) {
-  return new Date(timestamp).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+  const date = new Date(timestamp);
+  const options = { day: 'numeric', month: 'long' };
+  if (date.getFullYear() !== new Date().getFullYear()) options.year = 'numeric';
+  return date.toLocaleDateString('uk-UA', options);
 }
 
 // "сьогодні", "вчора" або "5 дн. тому" (рахуємо календарні дні, а не години)
