@@ -47,7 +47,7 @@ db.version(2).stores({
 
 ## Кроки
 - [x] 0. Гілка `onboarding`
-- [ ] 1. db.js: version(2), getProfile/saveProfile, експорт/імпорт
+- [x] 1. db.js: version(2), getProfile/saveProfile, експорт/імпорт
   → перевірка: старі тренування на місці; у файлі копії є "profile";
     стара копія (version 1) імпортується без помилок
 - [ ] 2. Екран js/views/onboarding.js + маршрут у app.js + файл у FILES у sw.js + стилі.
