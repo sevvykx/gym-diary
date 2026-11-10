@@ -38,6 +38,19 @@ export function getActiveWorkout() {
     .first();
 }
 
+// Скільки тренувань завершено цього тижня (тиждень з понеділка по неділю)
+export function countWorkoutsThisWeek() {
+  const now = new Date();
+  const daysFromMonday = (now.getDay() + 6) % 7; // getDay(): неділя = 0, понеділок = 1
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysFromMonday);
+
+  return db.workouts
+    .where('startedAt')
+    .aboveOrEqual(monday.getTime())
+    .filter((w) => w.finishedAt !== null)
+    .count();
+}
+
 // Видаляє тренування разом з усіма його підходами
 export function deleteWorkout(workoutId) {
   return db.transaction('rw', db.workouts, db.sets, async () => {
