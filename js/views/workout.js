@@ -1,6 +1,6 @@
-import { db, getActiveWorkout, deleteWorkout } from '../db.js';
+import { db, getActiveWorkout, deleteWorkout, getLastPerformance } from '../db.js';
 import { MUSCLE_GROUPS } from '../seed.js';
-import { escapeHtml, formatSet, formatTime, formatWeight } from '../utils.js';
+import { escapeHtml, formatDate, formatDaysAgo, formatSet, formatTime, formatWeight } from '../utils.js';
 
 const WEIGHT_STEP = 2.5;
 const DEFAULT_DRAFT = { weight: 20, reps: 10 };
@@ -52,13 +52,17 @@ async function renderActive(el, workout) {
   const exercises = await db.exercises.bulkGet(workout.exerciseIds);
   const sets = await db.sets.where('workoutId').equals(workout.id).toArray();
   const setsOf = (exerciseId) => sets.filter((s) => s.exerciseId === exerciseId);
+  // Для кожної вправи: що було на попередньому тренуванні
+  const lastTimes = await Promise.all(
+    workout.exerciseIds.map((id) => getLastPerformance(id, workout.id)),
+  );
   const isEmpty = workout.exerciseIds.length === 0;
 
   el.innerHTML = `
     <div id="workout">
       <p class="muted">Почато о ${formatTime(workout.startedAt)}</p>
       ${isEmpty ? '<p class="muted">Додай першу вправу, щоб записувати підходи.</p>' : ''}
-      ${workout.exerciseIds.map((id, i) => exerciseHtml(id, exercises[i], setsOf(id))).join('')}
+      ${workout.exerciseIds.map((id, i) => exerciseHtml(id, exercises[i], setsOf(id), lastTimes[i])).join('')}
       <a class="btn ${isEmpty ? 'btn-primary' : ''}" href="#/workout/add">+ Додати вправу</a>
       <button class="btn btn-success btn-big mt-lg" data-action="finish">Завершити тренування</button>
       <button class="btn btn-text mt" data-action="cancel">Скасувати тренування</button>
@@ -89,6 +93,12 @@ async function renderActive(el, workout) {
         writeInputs(card, draft);
         return; // змінилося лише число в полі, перемальовувати екран не треба
       }
+
+      case 'use-set': // тап по підходу з минулого разу підставляє його в поля
+        draft.weight = Number(btn.dataset.weight);
+        draft.reps = Number(btn.dataset.reps);
+        writeInputs(card, draft);
+        return;
 
       case 'add-set':
         readInputs(card, draft);
@@ -160,11 +170,13 @@ async function renderActive(el, workout) {
 }
 
 // Картка однієї вправи: записані підходи і поля для нового
-function exerciseHtml(exerciseId, exercise, exerciseSets) {
+function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime) {
   const last = exerciseSets[exerciseSets.length - 1];
 
+  // Початкові значення полів: останній підхід сьогодні, інакше перший підхід минулого разу
   if (!drafts.has(exerciseId)) {
-    drafts.set(exerciseId, last ? { weight: last.weight, reps: last.reps } : { ...DEFAULT_DRAFT });
+    const source = last ?? lastTime?.sets[0] ?? DEFAULT_DRAFT;
+    drafts.set(exerciseId, { weight: source.weight, reps: source.reps });
   }
   const draft = drafts.get(exerciseId);
 
@@ -174,6 +186,8 @@ function exerciseHtml(exerciseId, exercise, exerciseSets) {
         <h2>${escapeHtml(exercise?.name ?? 'Видалена вправа')}</h2>
         <button class="icon-btn" data-action="remove-exercise" aria-label="Прибрати вправу">×</button>
       </div>
+
+      ${lastTimeHtml(lastTime)}
 
       <ol class="sets">
         ${exerciseSets.map((set, i) => `
@@ -193,6 +207,24 @@ function exerciseHtml(exerciseId, exercise, exerciseSets) {
       <button class="btn btn-primary" data-action="add-set">Додати підхід</button>
       ${last ? `<button class="btn mt" data-action="repeat-set">↻ Повторити: ${formatSet(last)}</button>` : ''}
     </section>
+  `;
+}
+
+// Блок «Минулого разу»: дата і підходи попереднього тренування з цією вправою
+function lastTimeHtml(lastTime) {
+  if (!lastTime) return '<p class="muted">Цієї вправи ще не було в минулих тренуваннях.</p>';
+
+  return `
+    <div class="last-time">
+      <span class="caption">Минулого разу · ${formatDate(lastTime.date)}, ${formatDaysAgo(lastTime.date)}</span>
+      <div class="last-sets">
+        ${lastTime.sets.map((set) => `
+          <button class="last-set" data-action="use-set" data-weight="${set.weight}" data-reps="${set.reps}">
+            ${formatSet(set)}
+          </button>
+        `).join('')}
+      </div>
+    </div>
   `;
 }
 

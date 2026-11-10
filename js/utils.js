@@ -19,3 +19,17 @@ export function formatSet({ weight, reps }) {
 export function formatTime(timestamp) {
   return new Date(timestamp).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
 }
+
+// Дата у форматі "8 листопада"
+export function formatDate(timestamp) {
+  return new Date(timestamp).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+}
+
+// "сьогодні", "вчора" або "5 дн. тому" (рахуємо календарні дні, а не години)
+export function formatDaysAgo(timestamp) {
+  const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(new Date(timestamp))) / 86400000);
+  if (days <= 0) return 'сьогодні';
+  if (days === 1) return 'вчора';
+  return `${days} дн. тому`;
+}

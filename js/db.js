@@ -40,3 +40,20 @@ export function deleteWorkout(workoutId) {
     await db.workouts.delete(workoutId);
   });
 }
+
+// Підходи цієї вправи з останнього тренування, де вона була (поточне не рахуємо).
+// Повертає { date, sets } або null, якщо вправу ще не робили.
+export async function getLastPerformance(exerciseId, currentWorkoutId) {
+  const sets = await db.sets
+    .where('exerciseId')
+    .equals(exerciseId)
+    .filter((s) => s.workoutId !== currentWorkoutId)
+    .toArray();
+  if (sets.length === 0) return null;
+
+  const latest = sets.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+  return {
+    date: latest.createdAt,
+    sets: sets.filter((s) => s.workoutId === latest.workoutId),
+  };
+}
