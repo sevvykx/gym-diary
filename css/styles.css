@@ -166,3 +166,111 @@ button, a, .tabbar a { touch-action: manipulation; }
 }
 
 .empty p { margin: 0 0 24px; }
+
+/* Атрибут hidden має ховати навіть елементи з display: flex */
+[hidden] { display: none !important; }
+
+/* ===== Списки ===== */
+.section-title {
+  margin: 24px 4px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 8px 8px 8px 16px;
+}
+
+.list-item + .list-item { border-top: 1px solid var(--border); }
+.list-item .grow { flex: 1; min-width: 0; }
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.icon-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-btn:active { background: var(--surface-2); }
+
+/* ===== Форми ===== */
+.field { display: block; margin-bottom: 16px; }
+
+.field > span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.input {
+  width: 100%;
+  height: var(--tap);
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 17px;   /* менше 16px на iOS викликає зум при фокусі */
+  outline: none;
+}
+
+.input:focus { border-color: var(--accent); }
+
+/* Вибір одного варіанта «таблетками» (всередині схований radio) */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+
+.chip span {
+  display: block;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chip input:checked + span {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.row { display: flex; gap: 10px; }
+.error { margin: 0 0 12px; color: var(--danger); font-size: 15px; }
+.mt { margin-top: 12px; }
