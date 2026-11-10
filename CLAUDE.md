@@ -99,21 +99,32 @@
 - index.html: оболонка, нижня навігація, meta-теги для iOS
 - css/styles.css: усі стилі
 - js/app.js: хеш-роутинг (#/workout, #/history/7 ...), реєстрація Service Worker
-- js/db.js: схема бази Dexie, запити, експорт/імпорт копії
+- js/db.js: схема бази Dexie, запити, профіль, експорт/імпорт копії
 - js/seed.js: стартовий список вправ
 - js/utils.js: форматування дат і ваги, escapeHtml
-- js/views/*.js: екрани (workout, history, exercises, records, settings),
-  кожен експортує render(container, param)
+- js/views/*.js: екрани (workout, history, exercises, records, settings,
+  onboarding), кожен експортує render(container, param)
 - sw.js: Service Worker, кешує файли для офлайн-режиму
 - manifest.webmanifest, icons/: дані для встановлення PWA
+
+## Схема бази (зараз db.version(2))
+- exercises: { id, name, muscleGroup, isCustom }
+- workouts: { id, startedAt, finishedAt|null, exerciseIds: [] }
+- sets: { id, workoutId, exerciseId, weight, reps, createdAt }
+- profile: один запис з id: 1 { name, goal, experience, workoutsPerWeek,
+  bodyWeight|null }. Без профілю програма показує онбординг.
+- Файл копії: version: 2, містить profile (об'єкт або null). Копії
+  version 1 теж імпортуються, профіль при цьому не змінюється.
 
 ## Важливі правила
 - Новий екран: файл у js/views/ + маршрут у routes в js/app.js.
 - Новий файл у проєкті: ОБОВ'ЯЗКОВО додай його до списку FILES у sw.js,
   інакше він не працюватиме офлайн.
-- Зміни схеми бази: НЕ змінюй db.version(1). Додай db.version(2) з
-  міграцією, щоб у користувачів не зникли дані. Онови version у
-  exportAll/checkBackup, щоб старі копії імпортувалися.
+- Зміни схеми бази: НЕ змінюй db.version(1) і db.version(2). Додай
+  db.version(3) з міграцією, щоб у користувачів не зникли дані. Онови
+  version у exportAll/checkBackup, щоб старі копії імпортувалися.
+- Варіанти відповідей профілю (ціль, досвід тощо) описані один раз у STEPS
+  у js/views/onboarding.js. Їх використовують і вступ, і налаштування.
 - Текст від користувача вставляй у HTML лише через escapeHtml().
 - Інтерфейс і коментарі в коді українською.
 - Дизайн: mobile-first під iPhone, темна тема, великі кнопки для однієї
@@ -125,5 +136,3 @@
   Тому в main лише робочий код. Великі фічі роби в окремій гілці.
 - Після кожного завершеного кроку пропонуй команду git commit з
   коротким повідомленням українською.
-## Поточна задача
-Онбординг і профіль (гілка onboarding). План і прогрес: docs/onboarding-plan.md
