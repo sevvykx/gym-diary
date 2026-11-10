@@ -23,3 +23,20 @@ export async function requestPersistentStorage() {
   if (await navigator.storage.persisted()) return true;
   return navigator.storage.persist();
 }
+
+// Тренування, яке триває зараз (ще не завершене), або undefined
+export function getActiveWorkout() {
+  return db.workouts
+    .orderBy('startedAt')
+    .reverse()
+    .filter((w) => w.finishedAt === null)
+    .first();
+}
+
+// Видаляє тренування разом з усіма його підходами
+export function deleteWorkout(workoutId) {
+  return db.transaction('rw', db.workouts, db.sets, async () => {
+    await db.sets.where('workoutId').equals(workoutId).delete();
+    await db.workouts.delete(workoutId);
+  });
+}

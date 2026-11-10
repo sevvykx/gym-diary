@@ -121,6 +121,8 @@ button, a, .tabbar a { touch-action: manipulation; }
 
 /* ===== Кнопки ===== */
 .btn {
+  color: var(--text);
+  text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -198,7 +200,7 @@ button, a, .tabbar a { touch-action: manipulation; }
   padding: 8px 8px 8px 16px;
 }
 
-.list-item + .list-item { border-top: 1px solid var(--border); }
+.list > li + li { border-top: 1px solid var(--border); }
 .list-item .grow { flex: 1; min-width: 0; }
 
 .badge {
@@ -274,3 +276,121 @@ button, a, .tabbar a { touch-action: manipulation; }
 .row { display: flex; gap: 10px; }
 .error { margin: 0 0 12px; color: var(--danger); font-size: 15px; }
 .mt { margin-top: 12px; }
+
+/* ===== Додаткові кнопки та відступи ===== */
+.btn-success { background: var(--success); color: #06281a; }
+.btn-text { background: transparent; color: var(--danger); font-weight: 500; }
+.mt-lg { margin-top: 24px; }
+.muted { margin: 0 0 12px; color: var(--text-dim); font-size: 15px; }
+
+/* Рядок списку, який є кнопкою */
+.list-btn {
+  width: 100%;
+  padding-right: 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list-btn:active { background: var(--surface-2); }
+.list-btn:disabled { color: var(--text-dim); }
+
+/* ===== Картка вправи в тренуванні ===== */
+.exercise-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px -8px 4px 0;
+}
+
+.exercise-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+}
+
+.sets {
+  margin: 0 -8px 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sets li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  border-top: 1px solid var(--border);
+}
+
+.set-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.set-value {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Поля «вага» і «повтори» з кнопками − та + */
+.steppers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.caption {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.stepper {
+  display: flex;
+  height: var(--tap);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.stepper button {
+  flex: none;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: var(--surface-2);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.stepper button:active { filter: brightness(1.4); }
+
+.stepper input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
