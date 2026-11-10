@@ -1,9 +1,10 @@
-import { db, requestPersistentStorage } from './db.js';
+import { db, getProfile, requestPersistentStorage } from './db.js';
 import { render as renderWorkout } from './views/workout.js';
 import { render as renderHistory } from './views/history.js';
 import { render as renderExercises } from './views/exercises.js';
 import { render as renderRecords } from './views/records.js';
 import { render as renderSettings } from './views/settings.js';
+import { render as renderOnboarding } from './views/onboarding.js';
 
 // Назва маршруту → заголовок і функція, що малює екран
 const routes = {
@@ -12,6 +13,7 @@ const routes = {
   exercises: { title: 'Вправи',     render: renderExercises },
   records:   { title: 'Рекорди',    render: renderRecords },
   settings:  { title: 'Дані',       render: renderSettings },
+  onboarding: { title: 'Знайомство', render: renderOnboarding },
 };
 
 const view = document.getElementById('view');
@@ -24,9 +26,17 @@ function parseHash() {
 }
 
 async function navigate() {
-  const { name, param } = parseHash();
+  let { name, param } = parseHash();
+
+  // Без профілю показуємо лише онбординг, а з профілем на нього вже не пускаємо
+  const hasProfile = Boolean(await getProfile());
+  if (!hasProfile) name = 'onboarding';
+  else if (name === 'onboarding') name = 'workout';
+
   const route = routes[name];
 
+  // Під час онбордингу ховаємо нижню навігацію (стиль у styles.css)
+  document.body.classList.toggle('is-onboarding', name === 'onboarding');
   title.textContent = route.title;
   document.querySelectorAll('.tabbar a').forEach((a) => {
     a.classList.toggle('active', a.dataset.route === name);

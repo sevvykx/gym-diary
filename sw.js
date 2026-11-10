@@ -19,6 +19,7 @@ const FILES = [
   'js/views/exercises.js',
   'js/views/records.js',
   'js/views/settings.js',
+  'js/views/onboarding.js',
   'vendor/dexie.mjs',
   'icons/icon.svg',
   'icons/icon-192.png',
