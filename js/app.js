@@ -6,10 +6,12 @@ import { render as renderRecords } from './views/records.js';
 import { render as renderSettings } from './views/settings.js';
 import { render as renderOnboarding } from './views/onboarding.js';
 import { render as renderProfile } from './views/profile.js';
+import { render as renderHome } from './views/home.js';
 
 // Назва маршруту → заголовок і функція, що малює екран.
 // parent: екран відкривається з профілю, тому має кнопку «назад» і підсвічує його вкладку.
 const routes = {
+  home:      { title: 'Головна',    render: renderHome },
   workout:   { title: 'Тренування', render: renderWorkout },
   profile:   { title: 'Профіль',    render: renderProfile },
   history:   { title: 'Історія',    render: renderHistory,   parent: 'profile' },
@@ -26,7 +28,7 @@ const back = document.getElementById('back');
 // '#/history/7' → name = 'history', param = '7'
 function parseHash() {
   const [name, param] = location.hash.replace(/^#\/?/, '').split('/');
-  return { name: routes[name] ? name : 'workout', param };
+  return { name: routes[name] ? name : 'home', param };
 }
 
 async function navigate() {

@@ -102,13 +102,15 @@
 - js/db.js: схема бази Dexie, запити, профіль, експорт/імпорт копії
 - js/seed.js: стартовий список вправ
 - js/utils.js: форматування дат і ваги, escapeHtml
-- js/views/*.js: екрани (workout, profile, history, exercises, records,
+- js/views/*.js: екрани (home, workout, profile, history, exercises, records,
   settings, onboarding), кожен експортує render(container, param)
 - sw.js: Service Worker, кешує файли для офлайн-режиму
 - manifest.webmanifest, icons/: дані для встановлення PWA
 
 ## Навігація
-- Унизу дві вкладки: «Тренування» і «Профіль».
+- Унизу три вкладки: «Головна», «Тренування» і «Профіль». Програма
+  відкривається на «Головній»: останнє завершене тренування і випадкова
+  мотиваційна фраза (список QUOTES у js/views/home.js).
 - Історія, рекорди, вправи й налаштування відкриваються кнопками з профілю.
   У routes в js/app.js вони мають parent: 'profile': це дає кнопку «‹»
   у верхній смузі й підсвічує вкладку «Профіль».

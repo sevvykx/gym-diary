@@ -2,7 +2,7 @@
 // Дані тренувань тут ні до чого: вони лежать в IndexedDB.
 
 // Змінюй номер, якщо треба примусово скинути кеш у всіх, хто встановив програму
-const CACHE = 'gym-diary-v3';
+const CACHE = 'gym-diary-v4';
 
 // Усі файли програми. Додав новий файл у проєкт: допиши його сюди.
 const FILES = [
@@ -21,6 +21,7 @@ const FILES = [
   'js/views/settings.js',
   'js/views/onboarding.js',
   'js/views/profile.js',
+  'js/views/home.js',
   'vendor/dexie.mjs',
   'icons/icon.svg',
   'icons/icon-192.png',
