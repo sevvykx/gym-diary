@@ -126,22 +126,27 @@
 - Профіль редагується на #/profile/edit. У налаштуваннях лише резервна
   копія, відновлення і статистика.
 
-## Схема бази (зараз db.version(2))
-- exercises: { id, name, muscleGroup, isCustom }
-- workouts: { id, startedAt, finishedAt|null, exerciseIds: [] }
-- sets: { id, workoutId, exerciseId, weight, reps, createdAt }
+## Схема бази (зараз db.version(3))
+- exercises: { id, name, muscleGroup, isCustom, restSeconds }. restSeconds:
+  відпочинок після підходу для цієї вправи; немає або 0 = вимкнено.
+- workouts: { id, startedAt, finishedAt|null, exerciseIds: [], notes }.
+  notes: нотатки до вправ цього тренування { exerciseId: текст }, може не бути.
+- sets: { id, workoutId, exerciseId, weight, reps, done, createdAt }.
+  done: підхід виконано. У завершених тренуваннях лежать лише виконані
+  підходи; невиконані бувають тільки в активному тренуванні.
 - profile: один запис з id: 1 { name, goal, experience, workoutsPerWeek,
   bodyWeight|null }. Без профілю програма показує онбординг.
-- Файл копії: version: 2, містить profile (об'єкт або null). Копії
-  version 1 теж імпортуються, профіль при цьому не змінюється.
+- Файл копії: version: 3, містить profile (об'єкт або null). Копії
+  version 1 і 2 теж імпортуються: підходи в них стають виконаними, а з
+  копії version 1 профіль не змінюється.
 
 ## Важливі правила
 - Новий екран: файл у js/views/ + маршрут у routes в js/app.js. Якщо він
   відкривається з профілю, додай йому parent: 'profile'.
 - Новий файл у проєкті: ОБОВ'ЯЗКОВО додай його до списку FILES у sw.js,
   інакше він не працюватиме офлайн.
-- Зміни схеми бази: НЕ змінюй db.version(1) і db.version(2). Додай
-  db.version(3) з міграцією, щоб у користувачів не зникли дані. Онови
+- Зміни схеми бази: НЕ змінюй db.version(1), (2) і (3). Додай
+  db.version(4) з міграцією, щоб у користувачів не зникли дані. Онови
   version у exportAll/checkBackup, щоб старі копії імпортувалися.
 - Варіанти відповідей профілю (ціль, досвід тощо) описані один раз у STEPS
   у js/views/onboarding.js. Їх використовують і вступ, і форма
@@ -157,3 +162,7 @@
   Тому в main лише робочий код. Великі фічі роби в окремій гілці.
 - Після кожного завершеного кроку пропонуй команду git commit з
   коротким повідомленням українською.
+
+## Поточна задача
+Галочки виконаних підходів, таймер відпочинку, нотатки (гілка set-check).
+План і прогрес: docs/set-check-plan.md

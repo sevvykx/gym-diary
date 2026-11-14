@@ -313,7 +313,7 @@ function stepperHtml(label, field, step, value, inputmode) {
 }
 
 function addSet(workoutId, exerciseId, { weight, reps }) {
-  return db.sets.add({ workoutId, exerciseId, weight, reps, createdAt: Date.now() });
+  return db.sets.add({ workoutId, exerciseId, weight, reps, done: true, createdAt: Date.now() });
 }
 
 // Забирає числа з полів картки в draft (нечислове значення ігнорує)

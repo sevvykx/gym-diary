@@ -4,7 +4,8 @@ import { escapeHtml, formatDate, formatSet, formatWeight } from '../utils.js';
 
 export async function render(el) {
   const exercises = await db.exercises.toArray();
-  const sets = await db.sets.toArray();
+  // Рекорди рахуємо лише з виконаних підходів
+  const sets = await db.sets.filter((set) => set.done).toArray();
 
   // Підходи, згруповані за вправою: Map { exerciseId → [підхід, ...] }
   const setsByExercise = new Map();

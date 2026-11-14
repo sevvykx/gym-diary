@@ -15,6 +15,17 @@ db.version(2).stores({
   profile: 'id', // один запис з id: 1 { name, goal, experience, workoutsPerWeek, bodyWeight|null }
 });
 
+// Версія 3: підхід можна записати наперед і відмітити виконаним.
+// Нові поля (в індексах вони не потрібні, тому опис таблиць той самий):
+//   sets.done: true, якщо підхід виконано
+//   exercises.restSeconds: відпочинок після підходу для цієї вправи (немає або 0 = вимкнено)
+//   workouts.notes: нотатки до вправ цього тренування { exerciseId: текст }
+db.version(3).stores({
+  sets: '++id, workoutId, exerciseId',
+}).upgrade((tx) =>
+  // Усі підходи, записані до цієї версії, були виконані
+  tx.table('sets').toCollection().modify({ done: true }));
+
 // Спрацьовує тільки один раз, коли база створюється вперше
 db.on('populate', (tx) => {
   tx.table('exercises').bulkAdd(
@@ -61,6 +72,7 @@ export function deleteWorkout(workoutId) {
 
 // Підходи цієї вправи з останнього тренування, де вона була (поточне не рахуємо).
 // Повертає { date, sets } або null, якщо вправу ще не робили.
+// У завершених тренуваннях лежать лише виконані підходи, тому done тут не перевіряємо.
 export async function getLastPerformance(exerciseId, currentWorkoutId) {
   const sets = await db.sets
     .where('exerciseId')
@@ -94,7 +106,7 @@ export function saveProfile(profile) {
 export async function exportAll() {
   return {
     app: 'gym-diary',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     exercises: await db.exercises.toArray(),
     workouts: await db.workouts.toArray(),
@@ -108,7 +120,7 @@ export function checkBackup(data) {
   const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 
   if (data?.app !== 'gym-diary') return 'Це не файл копії щоденника тренувань.';
-  if (data.version > 2) return 'Файл створено новішою версією програми.';
+  if (data.version > 3) return 'Файл створено новішою версією програми.';
 
   // У копії version 1 профілю немає; у version 2 це об'єкт або null
   const profileOk = data.profile == null || typeof data.profile.name === 'string';
@@ -139,7 +151,8 @@ export function importAll(data) {
     await db.sets.clear();
     await db.exercises.bulkAdd(data.exercises);
     await db.workouts.bulkAdd(data.workouts);
-    await db.sets.bulkAdd(data.sets);
+    // У копіях до version 3 поля done немає: там усі підходи виконані
+    await db.sets.bulkAdd(data.sets.map((set) => ({ done: true, ...set })));
 
     // У старій копії (version 1) профілю немає, тож поточний не чіпаємо
     if (data.version >= 2) {
