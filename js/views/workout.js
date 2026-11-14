@@ -1,7 +1,7 @@
 import { db, getActiveWorkout, deleteWorkout, getLastPerformance } from '../db.js';
 import { MUSCLE_GROUPS } from '../seed.js';
 import { setClockVisible } from '../clock.js';
-import { escapeHtml, formatDate, formatDaysAgo, formatSet, formatWeight } from '../utils.js';
+import { escapeHtml, formatDate, formatDaysAgo, formatElapsed, formatSet, formatWeight } from '../utils.js';
 
 const WEIGHT_STEP = 2.5;
 const DEFAULT_DRAFT = { weight: 20, reps: 10 };
@@ -13,7 +13,8 @@ const drafts = new Map();
 // Перша з щойно доданих вправ: після перемальовування прокрутимо до неї
 let justAddedId = null;
 
-// Кнопка «Завершити» у верхній смузі: її видно лише на екрані активного тренування
+// Кнопка «Завершити» у верхній смузі. Її та кнопку «згорнути» видно,
+// лише поки body має клас workout-open, тобто на екрані активного тренування.
 const finishBtn = document.getElementById('finish-btn');
 
 // Раз на секунду оновлює тривалість тренування
@@ -23,7 +24,7 @@ export async function render(el, param) {
   const workout = await getActiveWorkout();
   // Тренування починається і скасовується на цьому екрані: одразу показуємо чи ховаємо таймер
   setClockVisible(Boolean(workout));
-  finishBtn.hidden = true;
+  document.body.classList.remove('workout-open');
 
   if (param === 'add') {
     if (!workout) {
@@ -57,15 +58,6 @@ async function renderStart(el) {
 }
 
 // ===== Тренування триває =====
-
-// Скільки вже триває тренування: "8 с", "12 хв 41 с", "1 год 5 хв"
-function formatElapsed(ms) {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  if (minutes === 0) return `${seconds} с`;
-  if (minutes < 60) return `${minutes} хв ${seconds % 60} с`;
-  return `${Math.floor(minutes / 60)} год ${minutes % 60} хв`;
-}
 
 async function renderActive(el, workout) {
   const exercises = await db.exercises.bulkGet(workout.exerciseIds);
@@ -106,7 +98,7 @@ async function renderActive(el, workout) {
     node.textContent = formatElapsed(Date.now() - workout.startedAt);
   }, 1000);
 
-  finishBtn.hidden = false;
+  document.body.classList.add('workout-open');
   finishBtn.onclick = async () => {
     if (sets.length === 0) {
       if (!confirm('У тренуванні немає жодного підходу. Видалити його?')) return;

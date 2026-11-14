@@ -65,6 +65,11 @@ button, a, .tabbar a { touch-action: manipulation; }
   margin: 0;
   font-size: 20px;
   font-weight: 700;
+  /* якщо кнопкам у смузі тісно, заголовок скорочується трьома крапками */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Кнопка «назад» у верхній смузі */
@@ -204,11 +209,44 @@ body.sheet-open { overflow: hidden; }
   font-variant-numeric: tabular-nums;
 }
 
-/* Кнопка «Завершити» у верхній смузі під час тренування */
+/* Кнопки «згорнути» і «Завершити» у верхній смузі: лише на екрані активного тренування */
+.minimize-btn,
+.finish-btn { display: none; }
+
+body.workout-open .minimize-btn { display: flex; }
+body.workout-open .finish-btn { display: block; }
+/* у смузі тісно: стрілка, заголовок, таймер і «Завершити», тому заголовок трохи менший */
+body.workout-open .topbar h1 { font-size: 17px; }
+
+.minimize-btn {
+  flex: none;
+  width: 40px;
+  height: 44px;
+  margin-left: -12px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.minimize-btn svg,
+.workout-bar svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .finish-btn {
+  flex: none;
   height: 36px;
-  margin-left: 18px;
-  padding: 0 14px;
+  margin-left: 10px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: var(--success);
@@ -235,6 +273,46 @@ body.sheet-open { overflow: hidden; }
 .workout-stats span { display: block; margin-bottom: 2px; color: var(--text-dim); font-size: 13px; }
 .workout-stats strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 #workout-duration { color: var(--accent); }
+
+/* ===== Згорнуте тренування ===== */
+.workout-bar {
+  display: none;
+  position: fixed;
+  inset: auto 12px calc(var(--tabbar-h) + var(--safe-bottom) + 8px) 12px;
+  z-index: 9;
+  max-width: 616px;
+  margin: 0 auto;
+  padding: 6px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+body.has-workout-bar .workout-bar { display: flex; }
+/* щоб смужка не закривала низ сторінки */
+body.has-workout-bar #view { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 68px); }
+
+.workout-bar p { margin: 0; font-variant-numeric: tabular-nums; }
+.workout-bar .icon-btn { border-radius: 999px; background: var(--surface-2); color: var(--text); }
+#workout-discard { color: var(--danger); }
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  vertical-align: middle;
+}
+
+/* Тренування з'їжджає вниз, коли його згортають, і виїжджає знизу, коли розгортають */
+#view.slide-down { animation: slide-down 0.25s ease-in forwards; }
+#view.slide-up { animation: slide-up 0.3s ease-out; }
+@keyframes slide-down { to { transform: translateY(100vh); } }
+@keyframes slide-up { from { transform: translateY(100vh); } }
 
 /* ===== Вміст екрана ===== */
 #view {

@@ -47,6 +47,15 @@ export function formatLongDate(timestamp) {
 }
 
 // Тривалість: "52 хв" або "1 год 12 хв"
+// Скільки вже триває тренування: "8 с", "12 хв 41 с", "1 год 5 хв"
+export function formatElapsed(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  if (minutes === 0) return `${seconds} с`;
+  if (minutes < 60) return `${minutes} хв ${seconds % 60} с`;
+  return `${Math.floor(minutes / 60)} год ${minutes % 60} хв`;
+}
+
 export function formatDuration(ms) {
   const minutes = Math.max(1, Math.round(ms / 60000));
   if (minutes < 60) return `${minutes} хв`;

@@ -27,12 +27,15 @@
 <body>
   <header class="topbar">
     <a class="back" id="back" href="#/profile" aria-label="Назад" hidden>‹</a>
+    <button class="minimize-btn" id="minimize-btn" aria-label="Згорнути тренування">
+      <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
     <h1 id="title">Тренування</h1>
     <button class="clock-btn" id="clock-btn" aria-label="Таймер і секундомір" hidden>
       <span id="clock-time"></span>
       <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M5.5 4L3 6.5M18.5 4L21 6.5"/></svg>
     </button>
-    <button class="finish-btn" id="finish-btn" hidden>Завершити</button>
+    <button class="finish-btn" id="finish-btn">Завершити</button>
   </header>
 
   <!-- Нижня панель таймера і секундоміра: відкриває і наповнює її js/clock.js -->
@@ -44,6 +47,17 @@
   </div>
 
   <main id="view"></main>
+
+  <!-- Згорнуте тренування: смужка над нижньою навігацією на всіх екранах, крім «Тренування» -->
+  <div class="workout-bar">
+    <button class="icon-btn" id="workout-expand" aria-label="Розгорнути тренування">
+      <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
+    </button>
+    <p class="grow"><span class="dot"></span><strong id="workout-bar-time"></strong></p>
+    <button class="icon-btn" id="workout-discard" aria-label="Скасувати тренування">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M10 4h4M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>
+    </button>
+  </div>
 
   <nav class="tabbar">
     <a href="#/home" data-route="home">
