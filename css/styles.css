@@ -38,6 +38,11 @@ html, body {
   overscroll-behavior-y: none;
 }
 
+/* iPhone, програма з початкового екрана: на коротких сторінках Safari рахує екран нижчим
+   на висоту рядка стану, і нижня навігація «відривається» від низу. Тому сторінка
+   завжди щонайменше на цю висоту вища. */
+html { min-height: calc(100% + var(--safe-top)); }
+
 button, input, select, textarea {
   font: inherit;
   color: inherit;
@@ -375,6 +380,9 @@ body.has-workout-bar #view { padding-bottom: calc(var(--tabbar-h) + var(--safe-b
 /* (разом із верхньою смугою, де стоять будильник і «Завершити») */
 body.slide-up #view,
 body.slide-up .topbar { animation: slide-up 0.3s ease-out; }
+
+/* Екран, що виїжджає знизу, не має робити сторінку довшою і прокручуваною */
+body.slide-up { overflow: hidden; }
 
 /* Поки тренування виїжджає, воно непрозоре й лежить поверх копії попереднього екрана */
 body.slide-up #view {
