@@ -28,7 +28,14 @@
   <header class="topbar">
     <a class="back" id="back" href="#/profile" aria-label="Назад" hidden>‹</a>
     <h1 id="title">Тренування</h1>
+    <button class="clock-btn" id="clock-btn" aria-label="Таймер і секундомір" hidden>
+      <span id="clock-time"></span>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M5.5 4L3 6.5M18.5 4L21 6.5"/></svg>
+    </button>
   </header>
+
+  <!-- Панель таймера і секундоміра: її вміст малює js/clock.js -->
+  <div class="clock-panel" id="clock-panel" hidden></div>
 
   <main id="view"></main>
 

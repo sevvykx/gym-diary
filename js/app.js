@@ -1,4 +1,4 @@
-import { db, getProfile, requestPersistentStorage } from './db.js';
+import { db, getProfile, getActiveWorkout, requestPersistentStorage } from './db.js';
 import { render as renderWorkout } from './views/workout.js';
 import { render as renderHistory } from './views/history.js';
 import { render as renderExercises } from './views/exercises.js';
@@ -7,6 +7,7 @@ import { render as renderSettings } from './views/settings.js';
 import { render as renderOnboarding } from './views/onboarding.js';
 import { render as renderProfile } from './views/profile.js';
 import { render as renderHome } from './views/home.js';
+import { setClockVisible } from './clock.js';
 
 // Назва маршруту → заголовок і функція, що малює екран.
 // parent: екран відкривається з профілю, тому має кнопку «назад» і підсвічує його вкладку.
@@ -40,6 +41,9 @@ async function navigate() {
   else if (name === 'onboarding') name = 'workout';
 
   const route = routes[name];
+
+  // Іконка таймера потрібна, лише поки триває тренування
+  setClockVisible(Boolean(await getActiveWorkout()));
 
   // Під час онбордингу ховаємо нижню навігацію (стиль у styles.css)
   document.body.classList.toggle('is-onboarding', name === 'onboarding');

@@ -102,6 +102,9 @@
 - js/db.js: схема бази Dexie, запити, профіль, експорт/імпорт копії
 - js/seed.js: стартовий список вправ
 - js/utils.js: форматування дат і ваги, escapeHtml
+- js/clock.js: таймер відпочинку і секундомір. Іконку у верхній смузі видно,
+  лише поки триває тренування (setClockVisible). Стан лише в пам'яті:
+  після перезавантаження сторінки відлік скидається.
 - js/views/*.js: екрани (home, workout, profile, history, exercises, records,
   settings, onboarding), кожен експортує render(container, param)
 - sw.js: Service Worker, кешує файли для офлайн-режиму

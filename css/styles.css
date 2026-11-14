@@ -81,6 +81,95 @@ button, a, .tabbar a { touch-action: manipulation; }
   line-height: 1;
 }
 
+/* ===== Таймер і секундомір ===== */
+.clock-btn {
+  height: 44px;
+  min-width: 44px;
+  margin: 0 -10px 0 auto;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.clock-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Таймер закінчився: «0:00» блимає, поки не натиснеш іконку */
+.clock-btn .is-done { color: var(--accent); animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.clock-panel {
+  position: fixed;
+  inset: calc(var(--topbar-h) + var(--safe-top)) 0 auto 0;
+  z-index: 9;
+  padding: 16px calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.clock-inner { max-width: 608px; margin: 0 auto; }
+.clock-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.clock-close {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Циферблат: кільце, а в центрі час */
+.clock-face {
+  position: relative;
+  width: 220px;
+  margin: 16px auto;
+}
+
+.clock-face svg { display: block; transform: rotate(-90deg); } /* кільце починається зверху */
+.clock-face circle { fill: none; stroke-width: 8; }
+.clock-track { stroke: var(--surface-2); }
+.clock-ring { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.25s linear; }
+
+/* Секундомір: лише цифри, без кільця */
+.clock-stopwatch {
+  margin: 40px 0;
+  text-align: center;
+  font-size: 52px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-big {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ===== Вміст екрана ===== */
 #view {
   padding:

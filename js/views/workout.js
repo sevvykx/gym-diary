@@ -1,5 +1,6 @@
 import { db, getActiveWorkout, deleteWorkout, getLastPerformance } from '../db.js';
 import { MUSCLE_GROUPS } from '../seed.js';
+import { setClockVisible } from '../clock.js';
 import { escapeHtml, formatDate, formatDaysAgo, formatSet, formatTime, formatWeight } from '../utils.js';
 
 const WEIGHT_STEP = 2.5;
@@ -14,6 +15,8 @@ let justAddedId = null;
 
 export async function render(el, param) {
   const workout = await getActiveWorkout();
+  // Тренування починається і скасовується на цьому екрані: одразу показуємо чи ховаємо таймер
+  setClockVisible(Boolean(workout));
 
   if (param === 'add') {
     if (!workout) {
