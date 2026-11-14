@@ -12,9 +12,14 @@ const label = document.getElementById('clock-time');
 const backdrop = document.getElementById('clock-backdrop'); // темний фон позаду панелі
 const sheet = document.getElementById('clock-sheet');       // сама панель, що виїжджає знизу
 const panel = document.getElementById('clock-panel');       // її вміст
+const title = document.getElementById('clock-title');       // заголовок панелі
+const restBar = document.getElementById('rest-bar');        // смужка відпочинку внизу тренування
+const restTime = document.getElementById('rest-time');
+const restLine = document.getElementById('rest-line');
 
 let isOpen = false;     // чи відкрита панель
-let mode = 'timer';     // що показує панель: 'timer' або 'stopwatch'
+let mode = 'timer';     // що показує панель: 'timer', 'stopwatch' або 'rest' (вибір відпочинку вправи)
+let restPick = null;    // у режимі 'rest': { seconds, onSave }
 let timerSetting = 90;  // скільки секунд виставлено на таймері
 let timerTotal = 0;     // повна тривалість поточного відліку, мс (для кільця)
 let timerEndAt = null;  // мітка часу, коли таймер дійде до нуля, або null
@@ -42,11 +47,36 @@ function setOpen(open) {
   sheet.classList.toggle('is-open', open);
   backdrop.classList.toggle('is-open', open);
   document.body.classList.toggle('sheet-open', open); // сторінка позаду не прокручується
+  if (!open && mode === 'rest') mode = 'timer'; // вибір відпочинку закрили: наступного разу знову годинник
   if (open) draw();
 }
 
+// Запускає зворотний відлік. Викликати лише у відповідь на натискання:
+// тільки тоді браузер дозволяє підготувати звук для сигналу.
+function startTimer(seconds) {
+  audio ??= new AudioContext();
+  audio.resume();
+  timerTotal = seconds * 1000;
+  timerEndAt = Date.now() + timerTotal;
+  timerDone = false;
+}
+
+// Відпочинок після виконаного підходу: той самий таймер, запущений на час вправи
+export function startRest(seconds) {
+  startTimer(seconds);
+  tick();
+}
+
+// Відкриває панель із барабанами, щоб вибрати час відпочинку для вправи.
+// onSave отримує вибрані секунди (0 = відпочинок вимкнено).
+export function pickRest(seconds, onSave) {
+  mode = 'rest';
+  restPick = { seconds: seconds || 90, onSave }; // якщо відпочинок вимкнено, пропонуємо 1:30
+  setOpen(true);
+}
+
 // 95 → "1:35"
-function formatClock(seconds) {
+export function formatClock(seconds) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
@@ -100,6 +130,13 @@ function tick() {
   label.textContent = text;
   label.classList.toggle('is-done', timerDone);
 
+  // Смужка відпочинку внизу екрана тренування: видно, поки йде відлік
+  document.body.classList.toggle('has-rest-bar', Boolean(timerEndAt));
+  if (timerEndAt) {
+    restTime.textContent = formatClock(timerSeconds);
+    restLine.style.width = `${(timerLeft() / timerTotal) * 100}%`;
+  }
+
   if (!isOpen || mode !== 'timer' || !timerEndAt) return;
 
   // У панелі: цифри в центрі та частка кільця, що лишилась (від 1 до 0)
@@ -152,19 +189,27 @@ const ringHtml = () => `
   <button class="btn btn-danger mt" data-action="timer-stop">Стоп</button>
 `;
 
-// Ставить барабани на виставлений час і стежить за прокручуванням
-function setupWheels() {
+// Вибір відпочинку для вправи: ті самі барабани
+const restHtml = () => `
+  <div class="wheels">
+    ${wheelHtml('minutes', 'хв')}
+    ${wheelHtml('seconds', 'с')}
+  </div>
+  <button class="btn btn-primary" data-action="rest-save">Зберегти</button>
+  <button class="btn mt" data-action="rest-off">Вимкнути відпочинок</button>
+`;
+
+// Ставить барабани на value секунд і повідомляє в onChange про кожне прокручування
+function setupWheels(value, onChange) {
   const [minutes, seconds] = panel.querySelectorAll('.wheel');
   if (!minutes) return; // зараз показано не барабани
 
-  minutes.scrollTop = Math.floor(timerSetting / 60) * ITEM;
-  seconds.scrollTop = (timerSetting % 60) * ITEM;
+  minutes.scrollTop = Math.floor(value / 60) * ITEM;
+  seconds.scrollTop = (value % 60) * ITEM;
 
   const read = (wheel) => Math.round(wheel.scrollTop / ITEM);
   for (const wheel of [minutes, seconds]) {
-    wheel.addEventListener('scroll', () => {
-      timerSetting = read(minutes) * 60 + read(seconds);
-    });
+    wheel.addEventListener('scroll', () => onChange(read(minutes) * 60 + read(seconds)));
     // Тап по числу теж вибирає його
     wheel.addEventListener('click', (event) => {
       const item = event.target.closest('.wheel-item');
@@ -183,12 +228,15 @@ function draw() {
         <button class="btn" data-action="sw-reset">Скинути</button>
       </div>
     `;
+  } else if (mode === 'rest') {
+    controls = restHtml();
   } else {
     controls = timerEndAt ? ringHtml() : wheelsHtml();
   }
 
+  title.textContent = mode === 'rest' ? 'Відпочинок після підходу' : 'Годинник';
   panel.innerHTML = `
-    <div class="chips">
+    <div class="chips" ${mode === 'rest' ? 'hidden' : ''}>
       <label class="chip">
         <input type="radio" name="clock-mode" value="timer" ${mode === 'timer' ? 'checked' : ''}>
         <span>Таймер</span>
@@ -200,7 +248,8 @@ function draw() {
     </div>
     ${controls}
   `;
-  setupWheels();
+  if (mode === 'rest') setupWheels(restPick.seconds, (value) => { restPick.seconds = value; });
+  else setupWheels(timerSetting, (value) => { timerSetting = value; });
   tick();
   cancelAnimationFrame(frameId);
   frame();
@@ -233,13 +282,13 @@ panel.addEventListener('click', (event) => {
     }
     case 'timer-start':
       if (timerSetting === 0) return; // на барабанах 0 хв 0 с: запускати нічого
-      // Звук дозволено вмикати лише у відповідь на натискання, тому готуємо його тут
-      audio ??= new AudioContext();
-      audio.resume();
-      timerTotal = timerSetting * 1000;
-      timerEndAt = Date.now() + timerTotal;
-      timerDone = false;
+      startTimer(timerSetting);
       break;
+    case 'rest-save':
+    case 'rest-off':
+      restPick.onSave(action.dataset.action === 'rest-off' ? 0 : restPick.seconds);
+      setOpen(false);
+      return;
     case 'timer-stop':
       timerEndAt = null;
       break;
@@ -257,6 +306,20 @@ panel.addEventListener('click', (event) => {
       break;
   }
   draw();
+});
+
+// Кнопки на смужці відпочинку
+restBar.addEventListener('click', (event) => {
+  const value = event.target.dataset.rest;
+  if (!value || !timerEndAt) return;
+
+  if (value === 'skip') {
+    timerEndAt = null; // без сигналу
+  } else {
+    timerEndAt += Number(value) * 1000;
+    timerTotal += Number(value) * 1000;
+  }
+  tick();
 });
 
 // ===== Перетягування панелі вниз =====

@@ -42,11 +42,22 @@
   <div class="sheet-backdrop" id="clock-backdrop"></div>
   <div class="sheet" id="clock-sheet">
     <div class="sheet-handle"></div>
-    <h2 class="sheet-title">Годинник</h2>
+    <h2 class="sheet-title" id="clock-title">Годинник</h2>
     <div id="clock-panel"></div>
   </div>
 
   <main id="view"></main>
+
+  <!-- Таймер відпочинку: смужка внизу екрана тренування, поки йде відлік (js/clock.js) -->
+  <div class="rest-bar" id="rest-bar">
+    <div class="rest-line"><div id="rest-line"></div></div>
+    <strong id="rest-time"></strong>
+    <div class="row">
+      <button class="btn" data-rest="-15">−15 с</button>
+      <button class="btn" data-rest="15">+15 с</button>
+      <button class="btn btn-primary" data-rest="skip">Пропустити</button>
+    </div>
+  </div>
 
   <!-- Згорнуте тренування: смужка над нижньою навігацією на всіх екранах, крім «Тренування» -->
   <div class="workout-bar">

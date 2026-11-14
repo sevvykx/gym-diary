@@ -342,6 +342,35 @@ body.workout-open .topbar h1 { font-size: 17px; }
 .dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .dialog h2 { margin: 0 0 8px; font-size: 19px; }
 
+/* ===== Смужка відпочинку внизу екрана тренування ===== */
+.rest-bar {
+  display: none;
+  position: fixed;
+  inset: auto 0 calc(var(--tabbar-h) + var(--safe-bottom)) 0;
+  z-index: 8;
+  padding: 0 calc(16px + var(--safe-right)) 12px calc(16px + var(--safe-left));
+  background: var(--surface);
+  text-align: center;
+}
+
+/* Видно, лише поки йде відлік (has-rest-bar ставить js/clock.js) і відкрито тренування */
+body.workout-open.has-rest-bar .rest-bar { display: block; }
+body.workout-open.has-rest-bar #view { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 150px); }
+
+/* Лінія, що коротшає разом із часом */
+.rest-line { margin: 0 calc(-16px - var(--safe-right)) 8px calc(-16px - var(--safe-left)); height: 4px; background: var(--surface-2); }
+#rest-line { height: 100%; background: var(--accent); transition: width 0.25s linear; }
+
+#rest-time {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 40px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.rest-bar .btn { min-height: 44px; }
+
 /* ===== Згорнуте тренування ===== */
 .workout-bar {
   display: none;
@@ -724,6 +753,19 @@ body .is-down .topbar h1 { font-size: 17px; }
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* Маленька кнопка в картці вправи («Відпочинок: 1:30») */
+.chip-btn {
+  min-height: 36px;
+  margin-bottom: 10px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* Таблиця підходів: № · минулого разу · кг · повтори · галочка */

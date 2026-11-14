@@ -1,6 +1,6 @@
 import { db, getActiveWorkout, deleteWorkout, getLastPerformance } from '../db.js';
 import { MUSCLE_GROUPS } from '../seed.js';
-import { setClockVisible } from '../clock.js';
+import { setClockVisible, startRest, pickRest, formatClock } from '../clock.js';
 import { escapeHtml, formatDate, formatDaysAgo, formatElapsed, formatSet, formatWeight } from '../utils.js';
 
 // Підхід для вправи, якої ще не було в минулих тренуваннях
@@ -186,7 +186,21 @@ async function renderActive(el, workout) {
         btn.closest('.set-row').classList.toggle('is-done', set.done);
         btn.setAttribute('aria-pressed', set.done);
         updateStats();
+
+        // Підхід виконано: запускаємо відпочинок, якщо він увімкнений для цієї вправи
+        const rest = exercises[workout.exerciseIds.indexOf(exerciseId)]?.restSeconds;
+        if (set.done && rest) startRest(rest);
         return; // змінився лише один рядок, перемальовувати екран не треба
+      }
+
+      case 'rest': {
+        // Барабани з часом відпочинку; вибране запам'ятовується для цієї вправи назавжди
+        const exercise = exercises[workout.exerciseIds.indexOf(exerciseId)];
+        pickRest(exercise.restSeconds, async (seconds) => {
+          await db.exercises.update(exerciseId, { restSeconds: seconds });
+          render(el);
+        });
+        return;
       }
 
       case 'add-set': {
@@ -259,6 +273,12 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime) {
       <p class="muted">${lastTime
         ? `Минулого разу: ${formatDate(lastTime.date)}, ${formatDaysAgo(lastTime.date)}`
         : 'Цієї вправи ще не було в минулих тренуваннях.'}</p>
+
+      ${exercise ? `
+        <button class="chip-btn" data-action="rest">
+          Відпочинок: ${exercise.restSeconds ? formatClock(exercise.restSeconds) : 'вимк.'}
+        </button>
+      ` : ''}
 
       <div class="set-row set-head">
         <span>№</span><span>Минуле</span><span>Кг</span><span>Повтори</span><span></span>
