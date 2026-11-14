@@ -114,28 +114,62 @@ button, a, .tabbar a { touch-action: manipulation; }
 .clock-btn .is-done { color: var(--accent); animation: blink 1s step-end infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
-.clock-panel {
+/* Темний фон позаду нижньої панелі */
+.sheet-backdrop {
   position: fixed;
-  inset: calc(var(--topbar-h) + var(--safe-top)) 0 auto 0;
-  z-index: 9;
-  padding: 16px calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left));
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none; /* жести на фоні не прокручують сторінку */
+  transition: opacity 0.3s;
+}
+
+.sheet-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+/* Нижня панель: у закритому стані захована під краєм екрана */
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 21;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px calc(16px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  border-radius: 20px 20px 0 0;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform 0.3s ease, visibility 0s 0.3s;
+  touch-action: none; /* рух пальця віддаємо коду перетягування, а не браузеру */
+  overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.clock-inner { max-width: 608px; margin: 0 auto; }
-.clock-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet.is-open { transform: translateY(0); visibility: visible; transition: transform 0.3s ease; }
 
-.clock-close {
-  min-height: 44px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-size: 16px;
+/* Поки панель тягнуть пальцем, вона рухається без затримки */
+.sheet.is-dragging,
+.sheet-backdrop.is-dragging { transition: none; }
+
+.sheet-handle {
+  width: 40px;
+  height: 5px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.sheet-title {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 17px;
   font-weight: 600;
-  cursor: pointer;
 }
+
+/* Поки панель відкрита, сторінка позаду не прокручується */
+body.sheet-open { overflow: hidden; }
 
 /* Циферблат: кільце, а в центрі час */
 .clock-face {

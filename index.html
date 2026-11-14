@@ -34,8 +34,13 @@
     </button>
   </header>
 
-  <!-- Панель таймера і секундоміра: її вміст малює js/clock.js -->
-  <div class="clock-panel" id="clock-panel" hidden></div>
+  <!-- Нижня панель таймера і секундоміра: відкриває і наповнює її js/clock.js -->
+  <div class="sheet-backdrop" id="clock-backdrop"></div>
+  <div class="sheet" id="clock-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="sheet-title">Годинник</h2>
+    <div id="clock-panel"></div>
+  </div>
 
   <main id="view"></main>
 

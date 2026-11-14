@@ -7,8 +7,11 @@ const RING = 2 * Math.PI * 90;  // довжина кола з радіусом 9
 
 const button = document.getElementById('clock-btn');
 const label = document.getElementById('clock-time');
-const panel = document.getElementById('clock-panel');
+const backdrop = document.getElementById('clock-backdrop'); // темний фон позаду панелі
+const sheet = document.getElementById('clock-sheet');       // сама панель, що виїжджає знизу
+const panel = document.getElementById('clock-panel');       // її вміст
 
+let isOpen = false;     // чи відкрита панель
 let mode = 'timer';     // що показує панель: 'timer' або 'stopwatch'
 let timerSetting = 90;  // скільки секунд виставлено на таймері
 let timerTotal = 0;     // повна тривалість поточного відліку, мс (для кільця)
@@ -24,11 +27,20 @@ export function setClockVisible(visible) {
   button.hidden = !visible;
   if (visible) return;
 
-  panel.hidden = true;
+  setOpen(false);
   timerEndAt = null;
   timerDone = false;
   swStartedAt = null;
   swElapsed = 0;
+}
+
+// Відкриває або закриває панель. Плавний рух роблять стилі класу is-open.
+function setOpen(open) {
+  isOpen = open;
+  sheet.classList.toggle('is-open', open);
+  backdrop.classList.toggle('is-open', open);
+  document.body.classList.toggle('sheet-open', open); // сторінка позаду не прокручується
+  if (open) draw();
 }
 
 // 95 → "1:35"
@@ -85,7 +97,7 @@ function tick() {
   label.textContent = text;
   label.classList.toggle('is-done', timerDone);
 
-  if (panel.hidden || mode !== 'timer') return;
+  if (!isOpen || mode !== 'timer') return;
 
   // У панелі: цифри в центрі та частка кільця, що лишилась (від 1 до 0)
   const part = timerEndAt ? timerLeft() / timerTotal : 1;
@@ -96,7 +108,7 @@ function tick() {
 // Соті частки секунди міняються надто швидко для tick,
 // тому секундомір у панелі перемальовуємо на кожному кадрі екрана
 function frame() {
-  if (panel.hidden || mode !== 'stopwatch') return;
+  if (!isOpen || mode !== 'stopwatch') return;
   panel.querySelector('#clock-big').textContent = formatStopwatch(stopwatchTime());
   if (swStartedAt) frameId = requestAnimationFrame(frame);
 }
@@ -128,34 +140,30 @@ function draw() {
     `;
 
   panel.innerHTML = `
-    <div class="clock-inner">
-      <div class="clock-head">
-        <div class="chips">
-          <label class="chip">
-            <input type="radio" name="clock-mode" value="timer" ${mode === 'timer' ? 'checked' : ''}>
-            <span>Таймер</span>
-          </label>
-          <label class="chip">
-            <input type="radio" name="clock-mode" value="stopwatch" ${mode === 'stopwatch' ? 'checked' : ''}>
-            <span>Секундомір</span>
-          </label>
-        </div>
-        <button class="clock-close" data-action="close">Закрити</button>
-      </div>
-      ${controls}
+    <div class="chips">
+      <label class="chip">
+        <input type="radio" name="clock-mode" value="timer" ${mode === 'timer' ? 'checked' : ''}>
+        <span>Таймер</span>
+      </label>
+      <label class="chip">
+        <input type="radio" name="clock-mode" value="stopwatch" ${mode === 'stopwatch' ? 'checked' : ''}>
+        <span>Секундомір</span>
+      </label>
     </div>
+    ${controls}
   `;
   tick();
   cancelAnimationFrame(frameId);
   frame();
 }
 
-// Іконка відкриває і закриває панель
+// Іконка відкриває панель, натискання на темний фон закриває
 button.addEventListener('click', () => {
   timerDone = false;
-  panel.hidden = !panel.hidden;
-  draw();
+  setOpen(true);
 });
+
+backdrop.addEventListener('click', () => setOpen(false));
 
 panel.addEventListener('change', (event) => {
   mode = event.target.value;
@@ -167,9 +175,6 @@ panel.addEventListener('click', (event) => {
   if (!action) return;
 
   switch (action.dataset.action) {
-    case 'close':
-      panel.hidden = true; // відлік при цьому не зупиняється
-      break;
     case 'timer-add': {
       const seconds = Number(action.dataset.seconds);
       if (timerEndAt) {
@@ -208,9 +213,65 @@ panel.addEventListener('click', (event) => {
   draw();
 });
 
-// Перехід на інший екран закриває панель: час і далі видно біля іконки
-window.addEventListener('hashchange', () => {
-  panel.hidden = true;
+// ===== Перетягування панелі вниз =====
+
+let dragStartY = null; // де палець торкнувся панелі, або null, якщо її не тягнуть
+let dragStartAt = 0;   // і коли це було
+let dragged = false;   // палець справді тягнув панель, а не просто натиснув кнопку
+
+sheet.addEventListener('pointerdown', (event) => {
+  dragStartY = event.clientY;
+  dragStartAt = event.timeStamp;
+  dragged = false;
 });
+
+sheet.addEventListener('pointermove', (event) => {
+  if (dragStartY === null) return;
+  const shift = Math.max(0, event.clientY - dragStartY);
+
+  if (!dragged) {
+    if (shift < 8) return; // дрібний рух пальця вважаємо звичайним натисканням
+    dragged = true;
+    sheet.setPointerCapture(event.pointerId); // рух надходить сюди, навіть якщо палець вийшов за панель
+    sheet.classList.add('is-dragging');
+    backdrop.classList.add('is-dragging');
+  }
+
+  // Панель їде за пальцем, а фон світлішає
+  sheet.style.transform = `translateY(${shift}px)`;
+  backdrop.style.opacity = 1 - shift / sheet.offsetHeight;
+});
+
+function endDrag(event) {
+  if (dragStartY === null) return;
+  const shift = Math.max(0, event.clientY - dragStartY);
+  const speed = shift / (event.timeStamp - dragStartAt); // пікселів за мілісекунду
+  dragStartY = null;
+  if (!dragged) return;
+
+  // Прибираємо зсув: далі панель сама плавно доїде вниз або повернеться на місце
+  sheet.classList.remove('is-dragging');
+  backdrop.classList.remove('is-dragging');
+  sheet.style.transform = '';
+  backdrop.style.opacity = '';
+
+  // Закриваємо, якщо стягнули більш ніж на третину висоти або швидко змахнули
+  if (shift > sheet.offsetHeight / 3 || speed > 0.5) setOpen(false);
+}
+
+sheet.addEventListener('pointerup', endDrag);
+sheet.addEventListener('pointercancel', endDrag);
+
+// Після перетягування браузер ще надсилає click туди, де відпустили палець: гасимо його,
+// щоб випадково не натиснулась кнопка
+sheet.addEventListener('click', (event) => {
+  if (!dragged) return;
+  dragged = false;
+  event.stopPropagation();
+  event.preventDefault();
+}, true);
+
+// Перехід на інший екран закриває панель: час і далі видно біля іконки
+window.addEventListener('hashchange', () => setOpen(false));
 
 setInterval(tick, 250);
