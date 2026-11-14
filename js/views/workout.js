@@ -1,7 +1,7 @@
 import { db, getActiveWorkout, deleteWorkout, getLastPerformance } from '../db.js';
 import { MUSCLE_GROUPS } from '../seed.js';
 import { setClockVisible } from '../clock.js';
-import { escapeHtml, formatDate, formatDaysAgo, formatSet, formatTime, formatWeight } from '../utils.js';
+import { escapeHtml, formatDate, formatDaysAgo, formatSet, formatWeight } from '../utils.js';
 
 const WEIGHT_STEP = 2.5;
 const DEFAULT_DRAFT = { weight: 20, reps: 10 };
@@ -13,10 +13,17 @@ const drafts = new Map();
 // Перша з щойно доданих вправ: після перемальовування прокрутимо до неї
 let justAddedId = null;
 
+// Кнопка «Завершити» у верхній смузі: її видно лише на екрані активного тренування
+const finishBtn = document.getElementById('finish-btn');
+
+// Раз на секунду оновлює тривалість тренування
+let durationTimer = null;
+
 export async function render(el, param) {
   const workout = await getActiveWorkout();
   // Тренування починається і скасовується на цьому екрані: одразу показуємо чи ховаємо таймер
   setClockVisible(Boolean(workout));
+  finishBtn.hidden = true;
 
   if (param === 'add') {
     if (!workout) {
@@ -51,6 +58,15 @@ async function renderStart(el) {
 
 // ===== Тренування триває =====
 
+// Скільки вже триває тренування: "8 с", "12 хв 41 с", "1 год 5 хв"
+function formatElapsed(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  if (minutes === 0) return `${seconds} с`;
+  if (minutes < 60) return `${minutes} хв ${seconds % 60} с`;
+  return `${Math.floor(minutes / 60)} год ${minutes % 60} хв`;
+}
+
 async function renderActive(el, workout) {
   const exercises = await db.exercises.bulkGet(workout.exerciseIds);
   const sets = await db.sets.where('workoutId').equals(workout.id).toArray();
@@ -60,19 +76,50 @@ async function renderActive(el, workout) {
     workout.exerciseIds.map((id) => getLastPerformance(id, workout.id)),
   );
   const isEmpty = workout.exerciseIds.length === 0;
+  // Об'єм: сума «вага × повтори» за всі підходи
+  const volume = sets.reduce((sum, set) => sum + set.weight * set.reps, 0);
 
   el.innerHTML = `
     <div id="workout">
-      <p class="muted">Почато о ${formatTime(workout.startedAt)}</p>
+      <div class="workout-stats">
+        <div><span>Тривалість</span><strong id="workout-duration">${formatElapsed(Date.now() - workout.startedAt)}</strong></div>
+        <div><span>Об'єм</span><strong>${formatWeight(volume)} кг</strong></div>
+        <div><span>Підходи</span><strong>${sets.length}</strong></div>
+      </div>
       ${isEmpty ? '<p class="muted">Додай першу вправу, щоб записувати підходи.</p>' : ''}
       ${workout.exerciseIds.map((id, i) => exerciseHtml(id, exercises[i], setsOf(id), lastTimes[i])).join('')}
       <a class="btn ${isEmpty ? 'btn-primary' : ''}" href="#/workout/add">+ Додати вправу</a>
-      <button class="btn btn-success btn-big mt-lg" data-action="finish">Завершити тренування</button>
-      <button class="btn btn-text mt" data-action="cancel">Скасувати тренування</button>
+      <button class="btn btn-text mt-lg" data-action="cancel">Скасувати тренування</button>
     </div>
   `;
 
   const root = el.querySelector('#workout');
+
+  // Тривалість іде щосекунди. Коли екран змінився і лічильника вже немає, зупиняємось.
+  clearInterval(durationTimer);
+  durationTimer = setInterval(() => {
+    const node = document.getElementById('workout-duration');
+    if (!node) {
+      clearInterval(durationTimer);
+      return;
+    }
+    node.textContent = formatElapsed(Date.now() - workout.startedAt);
+  }, 1000);
+
+  finishBtn.hidden = false;
+  finishBtn.onclick = async () => {
+    if (sets.length === 0) {
+      if (!confirm('У тренуванні немає жодного підходу. Видалити його?')) return;
+      await deleteWorkout(workout.id);
+      drafts.clear();
+      render(el);
+    } else {
+      if (!confirm('Завершити тренування?')) return;
+      await db.workouts.update(workout.id, { finishedAt: Date.now() });
+      drafts.clear();
+      location.hash = `#/history/${workout.id}`; // одразу показуємо підсумок
+    }
+  };
 
   if (justAddedId) {
     root.querySelector(`[data-exercise="${justAddedId}"]`)?.scrollIntoView({ block: 'center' });
@@ -135,20 +182,6 @@ async function renderActive(el, workout) {
         drafts.delete(exerciseId);
         break;
       }
-
-      case 'finish':
-        if (sets.length === 0) {
-          if (!confirm('У тренуванні немає жодного підходу. Видалити його?')) return;
-          await deleteWorkout(workout.id);
-        } else {
-          if (!confirm('Завершити тренування?')) return;
-          await db.workouts.update(workout.id, { finishedAt: Date.now() });
-          drafts.clear();
-          location.hash = `#/history/${workout.id}`; // одразу показуємо підсумок
-          return;
-        }
-        drafts.clear();
-        break;
 
       case 'cancel':
         if (!confirm('Скасувати тренування? Усі його підходи буде видалено.')) return;

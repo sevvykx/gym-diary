@@ -204,6 +204,38 @@ body.sheet-open { overflow: hidden; }
   font-variant-numeric: tabular-nums;
 }
 
+/* Кнопка «Завершити» у верхній смузі під час тренування */
+.finish-btn {
+  height: 36px;
+  margin-left: 18px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--success);
+  color: #06281a;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Рядок під верхньою смугою: тривалість, об'єм, підходи. Лишається на місці при прокручуванні. */
+.workout-stats {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--safe-top));
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: -16px -16px 16px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.workout-stats span { display: block; margin-bottom: 2px; color: var(--text-dim); font-size: 13px; }
+.workout-stats strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#workout-duration { color: var(--accent); }
+
 /* ===== Вміст екрана ===== */
 #view {
   padding:
@@ -415,7 +447,6 @@ body.sheet-open { overflow: hidden; }
 .mt { margin-top: 12px; }
 
 /* ===== Додаткові кнопки та відступи ===== */
-.btn-success { background: var(--success); color: #06281a; }
 .btn-text { background: transparent; color: var(--danger); font-weight: 500; }
 .mt-lg { margin-top: 24px; }
 .muted { margin: 0 0 12px; color: var(--text-dim); font-size: 15px; }

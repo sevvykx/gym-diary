@@ -25,6 +25,7 @@ const routes = {
 const view = document.getElementById('view');
 const title = document.getElementById('title');
 const back = document.getElementById('back');
+const finishBtn = document.getElementById('finish-btn');
 
 // '#/history/7' → name = 'history', param = '7'
 function parseHash() {
@@ -56,6 +57,7 @@ async function navigate() {
   back.hidden = !route.parent;
   if (route.parent) back.href = param ? `#/${name}` : `#/${route.parent}`;
 
+  finishBtn.hidden = true; // кнопку «Завершити» показує лише екран активного тренування
   view.innerHTML = '';
   window.scrollTo(0, 0);
   await route.render(view, param);
