@@ -309,6 +309,22 @@ button, a, .tabbar a { touch-action: manipulation; }
 
 .list-btn:active { background: var(--surface-2); }
 .list-btn:disabled { color: var(--text-dim); }
+.list-btn.is-picked { color: var(--accent); }
+.list-btn.is-picked .badge { background: var(--accent); color: #fff; }
+
+/* Кнопка «Додати вправи» завжди на видноті над нижньою навігацією */
+.picker-bar {
+  position: fixed;
+  inset: auto 0 calc(var(--tabbar-h) + var(--safe-bottom)) 0;
+  z-index: 5;
+  padding: 12px calc(16px + var(--safe-right)) 12px calc(16px + var(--safe-left));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.picker-bar .btn { max-width: 608px; margin: 0 auto; }
+.picker-bar .btn:disabled { opacity: 0.5; }
+.picker-space { margin-bottom: 84px; }
 
 /* ===== Картка вправи в тренуванні ===== */
 .exercise-head {

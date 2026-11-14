@@ -9,7 +9,7 @@ const DEFAULT_DRAFT = { weight: 20, reps: 10 };
 // Тримаємо окремо, щоб значення не скидалися, коли екран перемальовується.
 const drafts = new Map();
 
-// Вправа, яку щойно додали: після перемальовування прокрутимо до неї
+// Перша з щойно доданих вправ: після перемальовування прокрутимо до неї
 let justAddedId = null;
 
 export async function render(el, param) {
@@ -271,22 +271,47 @@ function normalize(field, value) {
 // ===== Вибір вправи (#/workout/add) =====
 
 async function renderPicker(el, workout) {
-  document.getElementById('title').textContent = 'Додати вправу';
+  document.getElementById('title').textContent = 'Додати вправи';
   const exercises = await db.exercises.toArray();
+  // id вибраних вправ у тому порядку, в якому їх натискали: так вони й стануть у тренуванні
+  const picked = [];
 
   el.innerHTML = `
     <a class="btn" href="#/workout">‹ Назад до тренування</a>
     ${MUSCLE_GROUPS.map((group) => pickerGroupHtml(group, exercises, workout.exerciseIds)).join('')}
-    <p class="muted mt-lg">Немає потрібної? Додай її у вкладці «Вправи».</p>
+    <p class="muted mt-lg picker-space">Немає потрібної? Додай її в «Профіль» → «Вправи».</p>
+    <div class="picker-bar">
+      <button class="btn btn-primary" id="add-picked" disabled>Вибери вправи</button>
+    </div>
   `;
 
+  const addBtn = el.querySelector('#add-picked');
+
   el.querySelectorAll('[data-pick]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
+      // Повторне натискання знімає вибір
       const exerciseId = Number(btn.dataset.pick);
-      await db.workouts.update(workout.id, { exerciseIds: [...workout.exerciseIds, exerciseId] });
-      justAddedId = exerciseId;
-      location.replace('#/workout'); // replace, щоб «назад» не повертало на цей список
+      const index = picked.indexOf(exerciseId);
+      if (index === -1) picked.push(exerciseId);
+      else picked.splice(index, 1);
+
+      // Біля кожної вибраної вправи показуємо її номер по порядку
+      el.querySelectorAll('[data-pick]').forEach((item) => {
+        const order = picked.indexOf(Number(item.dataset.pick)) + 1;
+        const badge = item.querySelector('.badge');
+        item.classList.toggle('is-picked', order > 0);
+        badge.textContent = order;
+        badge.hidden = order === 0;
+      });
+      addBtn.disabled = picked.length === 0;
+      addBtn.textContent = picked.length ? `Додати вправи: ${picked.length}` : 'Вибери вправи';
     });
+  });
+
+  addBtn.addEventListener('click', async () => {
+    await db.workouts.update(workout.id, { exerciseIds: [...workout.exerciseIds, ...picked] });
+    justAddedId = picked[0];
+    location.replace('#/workout'); // replace, щоб «назад» не повертало на цей список
   });
 }
 
@@ -301,9 +326,9 @@ function pickerGroupHtml(group, exercises, addedIds) {
         const added = addedIds.includes(e.id);
         return `
           <li>
-            <button class="list-item list-btn" data-pick="${e.id}" ${added ? 'disabled' : ''}>
+            <button class="list-item list-btn" ${added ? 'disabled' : `data-pick="${e.id}"`}>
               <span class="grow">${escapeHtml(e.name)}</span>
-              ${added ? '<span class="badge">додано</span>' : ''}
+              ${added ? '<span class="badge">додано</span>' : '<span class="badge" hidden></span>'}
             </button>
           </li>
         `;
