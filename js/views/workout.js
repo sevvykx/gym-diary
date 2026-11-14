@@ -3,8 +3,9 @@ import { MUSCLE_GROUPS } from '../seed.js';
 import { setClockVisible, startRest, pickRest, formatClock } from '../clock.js';
 import { escapeHtml, formatDate, formatDaysAgo, formatElapsed, formatSet, formatWeight } from '../utils.js';
 
-// На скільки пікселів рядок зсувається вліво, відкриваючи кнопку «Видалити» (як у styles.css)
-const SWIPE = 88;
+// На скільки пікселів стрічка зсувається вліво, щоб кнопка «Видалити» заїхала в рядок:
+// ширина кнопки 96 + відступ 8 (як у styles.css)
+const SWIPE = 104;
 
 // Підхід для вправи, якої ще не було в минулих тренуваннях
 const DEFAULT_SET = { weight: 20, reps: 10 };
@@ -328,16 +329,25 @@ async function renderActive(el, workout) {
     swipe.el.firstElementChild.style.transform = `translateX(${swipe.shift}px)`;
   });
 
-  const endSwipe = () => {
+  const endSwipe = (event) => {
     if (!swipe) return;
-    const { el, active, shift } = swipe;
+    const { el, active, shift, base } = swipe;
     swipe = null;
-    if (!active) return;
 
-    // Прибираємо зсув: далі рядок сам плавно доїде до відкритого чи закритого стану
+    if (!active) {
+      // Тап по відкритому рядку (не по «Видалити») просто закриває його, як на iPhone
+      if (base && !event.target.closest('.swipe-delete')) {
+        el.classList.remove('is-open');
+        swiped = true; // і не натискає галочку чи поле під пальцем
+      }
+      return;
+    }
+
+    // Прибираємо зсув: далі рядок сам плавно доїде до відкритого чи закритого стану.
+    // Вирішує напрямок руху: трохи вліво відкриває, трохи вправо закриває.
     el.classList.remove('is-swiping');
     el.firstElementChild.style.transform = '';
-    el.classList.toggle('is-open', shift < -SWIPE / 2);
+    el.classList.toggle('is-open', base ? shift < base + 24 : shift < -24);
   };
   root.addEventListener('pointerup', endSwipe);
   root.addEventListener('pointercancel', endSwipe);
@@ -378,9 +388,11 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime, note) {
         <button class="chip-btn" data-action="note">Нотатка</button>
       </div>
       <div class="swipe note-swipe" ${note ? '' : 'hidden'}>
-        <textarea class="input note" data-note rows="2" maxlength="300"
-          placeholder="Нотатка до цього тренування">${escapeHtml(note ?? '')}</textarea>
-        <button class="swipe-delete" data-action="delete-note">Видалити</button>
+        <div class="swipe-track">
+          <textarea class="input note" data-note rows="2" maxlength="300"
+            placeholder="Нотатка до цього тренування">${escapeHtml(note ?? '')}</textarea>
+          <button class="swipe-delete" data-action="delete-note">Видалити</button>
+        </div>
       </div>
 
       <div class="set-row set-head">
@@ -398,6 +410,7 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime, note) {
 function setRowHtml(set, index, previous) {
   return `
     <div class="swipe set-swipe" data-set="${set.id}">
+      <div class="swipe-track">
       <div class="set-row ${set.done ? 'is-done' : ''}">
         <span class="row-num">${index + 1}</span>
         <span class="set-prev">${previous ? formatSet(previous) : '—'}</span>
@@ -408,6 +421,7 @@ function setRowHtml(set, index, previous) {
         </button>
       </div>
       <button class="swipe-delete" data-action="delete-set">Видалити</button>
+      </div>
     </div>
   `;
 }

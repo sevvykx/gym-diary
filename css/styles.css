@@ -371,32 +371,6 @@ body.workout-open.has-rest-bar #view { padding-bottom: calc(var(--tabbar-h) + va
 
 .rest-bar .btn { min-height: 44px; }
 
-/* ===== Кнопка «сховати клавіатуру» (її місце над клавіатурою рахує js/app.js) ===== */
-.keyboard-hide {
-  position: fixed;
-  right: 12px;
-  z-index: 30;
-  width: 56px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 12px;
-  background: var(--text);
-  color: var(--bg);
-  cursor: pointer;
-}
-
-.keyboard-hide svg {
-  width: 26px;
-  height: 26px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 /* ===== Згорнуте тренування ===== */
 .workout-bar {
   display: none;
@@ -842,7 +816,6 @@ body .is-down .topbar h1 { font-size: 17px; }
 
 /* ===== Змах уліво відкриває кнопку «Видалити» (підхід, нотатка) ===== */
 .swipe {
-  position: relative;
   overflow: hidden;
   touch-action: pan-y; /* рух убік віддаємо коду, вгору-вниз лишаємо прокручуванню */
 }
@@ -851,29 +824,30 @@ body .is-down .topbar h1 { font-size: 17px; }
 .set-swipe .set-row { margin: 0; }
 .note-swipe { margin-bottom: 10px; border-radius: 12px; }
 
-/* Вміст, що їде вліво */
-.swipe > :first-child { transition: transform 0.2s ease; }
-.swipe.is-open > :first-child { transform: translateX(-88px); }
-.swipe.is-swiping > :first-child { transition: none; }
+/* Стрічка: вміст на всю ширину, а праворуч за краєм кнопка «Видалити».
+   Їде вліво вся разом, тому кнопка ніколи не накладається на вміст. */
+.swipe-track {
+  display: flex;
+  align-items: stretch;
+  transition: transform 0.2s ease;
+}
+
+.swipe-track > :first-child { flex: 0 0 100%; min-width: 0; }
+.swipe.is-open .swipe-track { transform: translateX(-104px); }
+.swipe.is-swiping .swipe-track { transition: none; }
 
 .swipe-delete {
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: 80px;
+  flex: 0 0 96px;
+  margin-left: 8px;
+  padding: 0;
   border: 0;
   border-radius: 10px;
   background: var(--danger);
   color: #fff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  /* поки рядок на місці, кнопки не видно і натиснути її не можна */
-  opacity: 0;
-  pointer-events: none;
 }
-
-.swipe.is-open .swipe-delete,
-.swipe.is-swiping .swipe-delete { opacity: 1; pointer-events: auto; }
 
 .set-prev {
   overflow: hidden;

@@ -137,34 +137,6 @@ document.getElementById('workout-discard').addEventListener('click', async () =>
   navigate(); // перемальовуємо екран: смужка й таймер зникають
 });
 
-// ===== Кнопка «сховати клавіатуру» =====
-// На iPhone цифрова клавіатура не має власної кнопки «Готово», тому показуємо свою.
-// Лише на сенсорних пристроях: на комп'ютері клавіатури на екрані немає.
-
-const keyboardHide = document.getElementById('keyboard-hide');
-const isTouch = matchMedia('(pointer: coarse)').matches;
-
-// Ставить кнопку одразу над клавіатурою: visualViewport знає висоту видимої частини екрана
-function placeKeyboardHide() {
-  const viewport = window.visualViewport;
-  keyboardHide.style.top = `${viewport.offsetTop + viewport.height - 52}px`;
-}
-
-document.addEventListener('focusin', (event) => {
-  if (!isTouch || !event.target.matches('input[type="text"], textarea')) return;
-  keyboardHide.hidden = false;
-  placeKeyboardHide();
-});
-document.addEventListener('focusout', () => { keyboardHide.hidden = true; });
-window.visualViewport.addEventListener('resize', placeKeyboardHide);
-window.visualViewport.addEventListener('scroll', placeKeyboardHide);
-
-// pointerdown, а не click: інакше поле втратить фокус і кнопка зникне раніше, ніж спрацює
-keyboardHide.addEventListener('pointerdown', (event) => {
-  event.preventDefault();
-  document.activeElement.blur();
-});
-
 // Для перевірки в консолі браузера: await db.exercises.toArray()
 window.db = db;
 
