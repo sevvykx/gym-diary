@@ -3,6 +3,9 @@ import { MUSCLE_GROUPS } from '../seed.js';
 import { setClockVisible, startRest, pickRest, formatClock } from '../clock.js';
 import { escapeHtml, formatDate, formatDaysAgo, formatElapsed, formatSet, formatWeight } from '../utils.js';
 
+// На скільки пікселів рядок зсувається вліво, відкриваючи кнопку «Видалити» (як у styles.css)
+const SWIPE = 88;
+
 // Підхід для вправи, якої ще не було в минулих тренуваннях
 const DEFAULT_SET = { weight: 20, reps: 10 };
 
@@ -207,11 +210,16 @@ async function renderActive(el, workout) {
 
       case 'note': {
         // Показує або ховає поле нотатки; сам текст зберігається, коли поле втрачає фокус
-        const field = card.querySelector('[data-note]');
-        field.hidden = !field.hidden;
-        if (!field.hidden) field.focus();
+        const wrap = card.querySelector('.note-swipe');
+        wrap.hidden = !wrap.hidden;
+        if (!wrap.hidden) wrap.querySelector('[data-note]').focus();
         return;
       }
+
+      case 'delete-note':
+        delete notes[exerciseId];
+        await db.workouts.update(workout.id, { notes });
+        break;
 
       case 'add-set': {
         // Новий рядок копіює попередній; якщо рядків ще немає, бере минулий раз
@@ -223,9 +231,8 @@ async function renderActive(el, workout) {
       }
 
       case 'delete-set': {
-        const set = setOf(btn);
-        if (!confirm(`Видалити підхід ${btn.textContent.trim()} («${formatSet(set)}»)?`)) return;
-        await db.sets.delete(set.id);
+        // Без підтвердження: кнопку ще треба було відкрити змахом
+        await db.sets.delete(setOf(btn).id);
         break;
       }
 
@@ -278,6 +285,71 @@ async function renderActive(el, workout) {
     await db.sets.update(set.id, { [field]: set[field] });
   });
 
+  // ===== Змах уліво по підходу чи нотатці відкриває кнопку «Видалити» =====
+
+  let swipe = null;   // { el, x, y, base, shift, active }, поки палець на рядку
+  let swiped = false; // палець справді тягнув рядок, а не просто натиснув
+
+  const closeSwipes = (except) => {
+    root.querySelectorAll('.swipe.is-open').forEach((el) => {
+      if (el !== except) el.classList.remove('is-open');
+    });
+  };
+
+  root.addEventListener('pointerdown', (event) => {
+    const el = event.target.closest('.swipe');
+    closeSwipes(el); // дотик деінде закриває відкриту кнопку
+    swiped = false;
+    if (!el) return;
+    swipe = {
+      el,
+      x: event.clientX,
+      y: event.clientY,
+      base: el.classList.contains('is-open') ? -SWIPE : 0,
+      active: false,
+    };
+  });
+
+  root.addEventListener('pointermove', (event) => {
+    if (!swipe) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+
+    if (!swipe.active) {
+      // Чекаємо на явний рух убік; рух вгору-вниз лишаємо прокручуванню сторінки
+      if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return;
+      swipe.active = true;
+      swiped = true;
+      swipe.el.setPointerCapture(event.pointerId);
+      swipe.el.classList.add('is-swiping');
+    }
+
+    swipe.shift = Math.min(0, Math.max(-SWIPE, swipe.base + dx));
+    swipe.el.firstElementChild.style.transform = `translateX(${swipe.shift}px)`;
+  });
+
+  const endSwipe = () => {
+    if (!swipe) return;
+    const { el, active, shift } = swipe;
+    swipe = null;
+    if (!active) return;
+
+    // Прибираємо зсув: далі рядок сам плавно доїде до відкритого чи закритого стану
+    el.classList.remove('is-swiping');
+    el.firstElementChild.style.transform = '';
+    el.classList.toggle('is-open', shift < -SWIPE / 2);
+  };
+  root.addEventListener('pointerup', endSwipe);
+  root.addEventListener('pointercancel', endSwipe);
+
+  // Після змаху браузер ще надсилає click туди, де відпустили палець: гасимо його
+  root.addEventListener('click', (event) => {
+    if (!swiped) return;
+    swiped = false;
+    event.stopPropagation();
+    event.preventDefault();
+  }, true);
+
   // Тап по полю виділяє число, тож нове значення одразу замінює старе
   root.addEventListener('focusin', (event) => {
     if (event.target.matches('input[data-field]')) event.target.select();
@@ -305,8 +377,11 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime, note) {
         ` : ''}
         <button class="chip-btn" data-action="note">Нотатка</button>
       </div>
-      <textarea class="input note" data-note rows="2" maxlength="300"
-        placeholder="Нотатка до цього тренування" ${note ? '' : 'hidden'}>${escapeHtml(note ?? '')}</textarea>
+      <div class="swipe note-swipe" ${note ? '' : 'hidden'}>
+        <textarea class="input note" data-note rows="2" maxlength="300"
+          placeholder="Нотатка до цього тренування">${escapeHtml(note ?? '')}</textarea>
+        <button class="swipe-delete" data-action="delete-note">Видалити</button>
+      </div>
 
       <div class="set-row set-head">
         <span>№</span><span>Минуле</span><span>Кг</span><span>Повтори</span><span></span>
@@ -318,17 +393,21 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime, note) {
   `;
 }
 
-// Рядок таблиці: номер (тап видаляє підхід), той самий підхід минулого разу, вага, повтори, галочка
+// Рядок таблиці: номер, той самий підхід минулого разу, вага, повтори, галочка.
+// Змах уліво відкриває кнопку «Видалити».
 function setRowHtml(set, index, previous) {
   return `
-    <div class="set-row ${set.done ? 'is-done' : ''}" data-set="${set.id}">
-      <button class="row-num" data-action="delete-set" aria-label="Видалити підхід ${index + 1}">${index + 1}</button>
-      <span class="set-prev">${previous ? formatSet(previous) : '—'}</span>
-      <input data-field="weight" type="text" inputmode="decimal" value="${formatWeight(set.weight)}" aria-label="Вага, кг">
-      <input data-field="reps" type="text" inputmode="numeric" value="${set.reps}" aria-label="Повтори">
-      <button class="set-check" data-action="toggle-set" aria-label="Підхід виконано" aria-pressed="${set.done}">
-        <svg viewBox="0 0 24 24"><path d="M5 12.5l5 5 9-11"/></svg>
-      </button>
+    <div class="swipe set-swipe" data-set="${set.id}">
+      <div class="set-row ${set.done ? 'is-done' : ''}">
+        <span class="row-num">${index + 1}</span>
+        <span class="set-prev">${previous ? formatSet(previous) : '—'}</span>
+        <input data-field="weight" type="text" inputmode="decimal" value="${formatWeight(set.weight)}" aria-label="Вага, кг">
+        <input data-field="reps" type="text" inputmode="numeric" value="${set.reps}" aria-label="Повтори">
+        <button class="set-check" data-action="toggle-set" aria-label="Підхід виконано" aria-pressed="${set.done}">
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l5 5 9-11"/></svg>
+        </button>
+      </div>
+      <button class="swipe-delete" data-action="delete-set">Видалити</button>
     </div>
   `;
 }

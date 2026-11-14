@@ -371,6 +371,32 @@ body.workout-open.has-rest-bar #view { padding-bottom: calc(var(--tabbar-h) + va
 
 .rest-bar .btn { min-height: 44px; }
 
+/* ===== Кнопка «сховати клавіатуру» (її місце над клавіатурою рахує js/app.js) ===== */
+.keyboard-hide {
+  position: fixed;
+  right: 12px;
+  z-index: 30;
+  width: 56px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: var(--text);
+  color: var(--bg);
+  cursor: pointer;
+}
+
+.keyboard-hide svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ===== Згорнуте тренування ===== */
 .workout-bar {
   display: none;
@@ -392,6 +418,7 @@ body.has-workout-bar .workout-bar { display: flex; }
 body.has-workout-bar #view { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px + 68px); }
 
 .workout-bar p { margin: 0; font-variant-numeric: tabular-nums; }
+.workout-bar p:empty { display: none; } /* без поточної вправи другого рядка немає */
 .workout-bar .icon-btn { border-radius: 999px; background: var(--surface-2); color: var(--text); }
 #workout-discard { color: var(--danger); }
 
@@ -774,7 +801,6 @@ body .is-down .topbar h1 { font-size: 17px; }
 .note {
   display: block;
   height: auto;
-  margin-bottom: 10px;
   padding: 10px 14px;
   resize: none;
 }
@@ -804,16 +830,50 @@ body .is-down .topbar h1 { font-size: 17px; }
 /* Виконаний підхід */
 .set-row.is-done { background: rgba(62, 207, 142, 0.16); }
 
-/* Номер підходу: тап видаляє підхід */
+/* Номер підходу */
 .row-num {
   height: 36px;
-  padding: 0;
-  border: 0;
+  display: grid;
+  place-items: center;
   border-radius: 8px;
   background: var(--surface-2);
   font-weight: 600;
-  cursor: pointer;
 }
+
+/* ===== Змах уліво відкриває кнопку «Видалити» (підхід, нотатка) ===== */
+.swipe {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y; /* рух убік віддаємо коду, вгору-вниз лишаємо прокручуванню */
+}
+
+.set-swipe { margin: 0 -8px; border-radius: 10px; }
+.set-swipe .set-row { margin: 0; }
+.note-swipe { margin-bottom: 10px; border-radius: 12px; }
+
+/* Вміст, що їде вліво */
+.swipe > :first-child { transition: transform 0.2s ease; }
+.swipe.is-open > :first-child { transform: translateX(-88px); }
+.swipe.is-swiping > :first-child { transition: none; }
+
+.swipe-delete {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 80px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  /* поки рядок на місці, кнопки не видно і натиснути її не можна */
+  opacity: 0;
+  pointer-events: none;
+}
+
+.swipe.is-open .swipe-delete,
+.swipe.is-swiping .swipe-delete { opacity: 1; pointer-events: auto; }
 
 .set-prev {
   overflow: hidden;

@@ -27,6 +27,7 @@ const view = document.getElementById('view');
 const title = document.getElementById('title');
 const back = document.getElementById('back');
 const barTime = document.getElementById('workout-bar-time');
+const barExercise = document.getElementById('workout-bar-exercise');
 
 // Активне тренування (для смужки згорнутого тренування) або null
 let barWorkout = null;
@@ -58,6 +59,7 @@ async function navigate() {
 
   // Згорнуте тренування показується смужкою над нижньою навігацією
   barWorkout = active ?? null;
+  barExercise.textContent = active ? await currentExerciseName(active) : '';
   document.body.classList.toggle('has-workout-bar', Boolean(active) && workoutState.minimized);
   updateBar();
 
@@ -80,6 +82,16 @@ async function navigate() {
 }
 
 // ===== Згортання тренування =====
+
+// Поточна вправа тренування: перша за порядком, де ще є невідмічений підхід.
+// Порожній рядок, якщо все відмічено або вправ ще немає.
+async function currentExerciseName(workout) {
+  const sets = await db.sets.where('workoutId').equals(workout.id).toArray();
+  const id = workout.exerciseIds.find((exerciseId) =>
+    sets.some((set) => set.exerciseId === exerciseId && !set.done));
+  if (!id) return '';
+  return (await db.exercises.get(id))?.name ?? '';
+}
 
 // Час на смужці згорнутого тренування
 function updateBar() {
@@ -123,6 +135,34 @@ document.getElementById('workout-discard').addEventListener('click', async () =>
   await deleteWorkout(barWorkout.id);
   workoutState.minimized = false;
   navigate(); // перемальовуємо екран: смужка й таймер зникають
+});
+
+// ===== Кнопка «сховати клавіатуру» =====
+// На iPhone цифрова клавіатура не має власної кнопки «Готово», тому показуємо свою.
+// Лише на сенсорних пристроях: на комп'ютері клавіатури на екрані немає.
+
+const keyboardHide = document.getElementById('keyboard-hide');
+const isTouch = matchMedia('(pointer: coarse)').matches;
+
+// Ставить кнопку одразу над клавіатурою: visualViewport знає висоту видимої частини екрана
+function placeKeyboardHide() {
+  const viewport = window.visualViewport;
+  keyboardHide.style.top = `${viewport.offsetTop + viewport.height - 52}px`;
+}
+
+document.addEventListener('focusin', (event) => {
+  if (!isTouch || !event.target.matches('input[type="text"], textarea')) return;
+  keyboardHide.hidden = false;
+  placeKeyboardHide();
+});
+document.addEventListener('focusout', () => { keyboardHide.hidden = true; });
+window.visualViewport.addEventListener('resize', placeKeyboardHide);
+window.visualViewport.addEventListener('scroll', placeKeyboardHide);
+
+// pointerdown, а не click: інакше поле втратить фокус і кнопка зникне раніше, ніж спрацює
+keyboardHide.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  document.activeElement.blur();
 });
 
 // Для перевірки в консолі браузера: await db.exercises.toArray()
