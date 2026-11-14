@@ -1,6 +1,4 @@
-import {
-  db, getActiveWorkout, deleteWorkout, getLastPerformance, getProfile, countWorkoutsThisWeek,
-} from '../db.js';
+import { db, getActiveWorkout, deleteWorkout, getLastPerformance } from '../db.js';
 import { MUSCLE_GROUPS } from '../seed.js';
 import { escapeHtml, formatDate, formatDaysAgo, formatSet, formatTime, formatWeight } from '../utils.js';
 
@@ -33,19 +31,7 @@ export async function render(el, param) {
 // ===== Немає активного тренування =====
 
 async function renderStart(el) {
-  const profile = await getProfile();
-  const done = await countWorkoutsThisWeek();
-  const goal = profile.workoutsPerWeek;
-
   el.innerHTML = `
-    <section class="card">
-      <h2 class="card-title">Привіт, ${escapeHtml(profile.name)}!</h2>
-      <p class="card-sub">${done} з ${goal} тренувань цього тижня</p>
-      <div class="progress mt">
-        <div class="progress-bar" style="width: ${Math.min(100, (done / goal) * 100)}%"></div>
-      </div>
-    </section>
-
     <div class="empty">
       <h2>Немає активного тренування</h2>
       <p>Почни нове, і тут з'являться вправи та підходи.</p>

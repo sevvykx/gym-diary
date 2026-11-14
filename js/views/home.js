@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db, getProfile, countWorkoutsThisWeek } from '../db.js';
 import { escapeHtml, formatDuration, formatLongDate, formatTime, formatWeight } from '../utils.js';
 
 // Мотиваційні фрази: щоразу, коли відкривається екран, показуємо випадкову
@@ -18,6 +18,10 @@ const QUOTES = [
 ];
 
 export async function render(el) {
+  const profile = await getProfile();
+  const done = await countWorkoutsThisWeek();
+  const goal = profile.workoutsPerWeek;
+
   // Останнє завершене тренування
   const workout = await db.workouts
     .orderBy('startedAt')
@@ -28,6 +32,14 @@ export async function render(el) {
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
   el.innerHTML = `
+    <section class="card">
+      <h2 class="card-title">Привіт, ${escapeHtml(profile.name)}!</h2>
+      <p class="card-sub">${done} з ${goal} тренувань цього тижня</p>
+      <div class="progress mt">
+        <div class="progress-bar" style="width: ${Math.min(100, (done / goal) * 100)}%"></div>
+      </div>
+    </section>
+
     <h2 class="section-title">Останнє тренування</h2>
     ${workout ? await workoutHtml(workout) : `
       <section class="card">
