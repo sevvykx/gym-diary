@@ -100,6 +100,8 @@ async function renderActive(el, workout) {
     workout.exerciseIds.map((id) => getLastPerformance(id, workout.id)),
   );
   const isEmpty = workout.exerciseIds.length === 0;
+  // Нотатки до вправ цього тренування: { exerciseId: текст }
+  const notes = workout.notes ?? {};
 
   el.innerHTML = `
     <div id="workout">
@@ -109,7 +111,7 @@ async function renderActive(el, workout) {
         <div><span>Підходи</span><strong id="workout-sets"></strong></div>
       </div>
       ${isEmpty ? '<p class="muted">Додай першу вправу, щоб записувати підходи.</p>' : ''}
-      ${workout.exerciseIds.map((id, i) => exerciseHtml(id, exercises[i], setsOf(id), lastTimes[i])).join('')}
+      ${workout.exerciseIds.map((id, i) => exerciseHtml(id, exercises[i], setsOf(id), lastTimes[i], notes[id])).join('')}
       <a class="btn ${isEmpty ? 'btn-primary' : ''}" href="#/workout/add">+ Додати вправу</a>
       <button class="btn btn-text mt-lg" data-action="cancel">Скасувати тренування</button>
     </div>
@@ -203,6 +205,14 @@ async function renderActive(el, workout) {
         return;
       }
 
+      case 'note': {
+        // Показує або ховає поле нотатки; сам текст зберігається, коли поле втрачає фокус
+        const field = card.querySelector('[data-note]');
+        field.hidden = !field.hidden;
+        if (!field.hidden) field.focus();
+        return;
+      }
+
       case 'add-set': {
         // Новий рядок копіює попередній; якщо рядків ще немає, бере минулий раз
         const exerciseSets = setsOf(exerciseId);
@@ -224,8 +234,10 @@ async function renderActive(el, workout) {
         if (count > 0 && !confirm(`Прибрати вправу разом із виконаними підходами (${count})?`)) return;
         await db.transaction('rw', db.workouts, db.sets, async () => {
           await db.sets.bulkDelete(setsOf(exerciseId).map((s) => s.id));
+          delete notes[exerciseId];
           await db.workouts.update(workout.id, {
             exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId),
+            notes,
           });
         });
         break;
@@ -244,6 +256,17 @@ async function renderActive(el, workout) {
   // Екран не перемальовуємо, щоб не збити курсор у сусідньому полі.
   root.addEventListener('change', async (event) => {
     const input = event.target;
+
+    // Нотатка до вправи: порожню не зберігаємо
+    if (input.matches('[data-note]')) {
+      const exerciseId = Number(input.closest('[data-exercise]').dataset.exercise);
+      const text = input.value.trim();
+      if (text) notes[exerciseId] = text;
+      else delete notes[exerciseId];
+      await db.workouts.update(workout.id, { notes });
+      return;
+    }
+
     if (!input.matches('input[data-field]')) return;
 
     const set = setOf(input);
@@ -262,7 +285,7 @@ async function renderActive(el, workout) {
 }
 
 // Картка однієї вправи: таблиця підходів, які можна відмітити виконаними
-function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime) {
+function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime, note) {
   return `
     <section class="card" data-exercise="${exerciseId}">
       <div class="exercise-head">
@@ -274,11 +297,16 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime) {
         ? `Минулого разу: ${formatDate(lastTime.date)}, ${formatDaysAgo(lastTime.date)}`
         : 'Цієї вправи ще не було в минулих тренуваннях.'}</p>
 
-      ${exercise ? `
-        <button class="chip-btn" data-action="rest">
-          Відпочинок: ${exercise.restSeconds ? formatClock(exercise.restSeconds) : 'вимк.'}
-        </button>
-      ` : ''}
+      <div class="chip-row">
+        ${exercise ? `
+          <button class="chip-btn" data-action="rest">
+            Відпочинок: ${exercise.restSeconds ? formatClock(exercise.restSeconds) : 'вимк.'}
+          </button>
+        ` : ''}
+        <button class="chip-btn" data-action="note">Нотатка</button>
+      </div>
+      <textarea class="input note" data-note rows="2" maxlength="300"
+        placeholder="Нотатка до цього тренування" ${note ? '' : 'hidden'}>${escapeHtml(note ?? '')}</textarea>
 
       <div class="set-row set-head">
         <span>№</span><span>Минуле</span><span>Кг</span><span>Повтори</span><span></span>

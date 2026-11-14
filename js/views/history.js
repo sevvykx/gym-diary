@@ -76,6 +76,7 @@ async function renderDetails(el, workoutId) {
     return `
       <section class="card">
         <h2 class="card-title">${escapeHtml(names.get(exerciseId) ?? 'Видалена вправа')}</h2>
+        ${workout.notes?.[exerciseId] ? `<p class="card-sub note-text">${escapeHtml(workout.notes[exerciseId])}</p>` : ''}
         <ol class="sets sets-flush">
           ${exerciseSets.map((set, i) => `
             <li>
