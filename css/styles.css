@@ -115,7 +115,10 @@ button, a, .tabbar a { touch-action: manipulation; }
   stroke-linejoin: round;
 }
 
-/* Таймер закінчився: «0:00» блимає, поки не натиснеш іконку */
+/* Будильник видно лише на екрані активного тренування */
+body:not(.workout-open) .clock-btn { display: none; }
+
+/* Таймер закінчився: «0:00» кілька секунд блимає */
 .clock-btn .is-done { color: var(--accent); animation: blink 1s step-end infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -175,6 +178,53 @@ button, a, .tabbar a { touch-action: manipulation; }
 
 /* Поки панель відкрита, сторінка позаду не прокручується */
 body.sheet-open { overflow: hidden; }
+
+/* Барабани таймера: хвилини й секунди */
+.wheels {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 16px 0;
+}
+
+/* Смужка, що підсвічує вибраний рядок посередині */
+.wheels::before {
+  content: '';
+  position: absolute;
+  inset: 80px 0 auto 0;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.wheel-col { position: relative; display: flex; align-items: center; gap: 8px; }
+.wheel-col span { width: 24px; font-size: 17px; font-weight: 600; }
+
+.wheel {
+  width: 64px;
+  height: 200px;          /* видно 5 чисел по 40px */
+  padding: 80px 0;        /* щоб перше й останнє число могли стати посередині */
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  touch-action: pan-y;    /* палець прокручує барабан, а не тягне панель */
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+  mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent);
+}
+
+.wheel::-webkit-scrollbar { display: none; }
+
+.wheel-item {
+  height: 40px;
+  line-height: 40px;
+  text-align: right;
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  scroll-snap-align: center;
+}
 
 /* Циферблат: кільце, а в центрі час */
 .clock-face {
@@ -274,6 +324,19 @@ body.workout-open .topbar h1 { font-size: 17px; }
 .workout-stats strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 #workout-duration { color: var(--accent); }
 
+/* ===== Вікно з вибором («Тренування вже триває») ===== */
+.dialog {
+  width: min(360px, calc(100% - 32px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.dialog h2 { margin: 0 0 8px; font-size: 19px; }
+
 /* ===== Згорнуте тренування ===== */
 .workout-bar {
   display: none;
@@ -309,9 +372,58 @@ body.has-workout-bar #view { padding-bottom: calc(var(--tabbar-h) + var(--safe-b
 }
 
 /* Тренування з'їжджає вниз, коли його згортають, і виїжджає знизу, коли розгортають */
-#view.slide-down { animation: slide-down 0.25s ease-in forwards; }
-#view.slide-up { animation: slide-up 0.3s ease-out; }
-@keyframes slide-down { to { transform: translateY(100vh); } }
+/* (разом із верхньою смугою, де стоять будильник і «Завершити») */
+body.slide-up #view,
+body.slide-up .topbar { animation: slide-up 0.3s ease-out; }
+
+/* Поки тренування виїжджає, воно непрозоре й лежить поверх копії попереднього екрана */
+body.slide-up #view {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* Нерухома копія екрана на час анімації (її створює addGhost у js/app.js) */
+.slide-ghost {
+  position: fixed;
+  inset: 0 0 calc(var(--tabbar-h) + var(--safe-bottom)) 0;
+  overflow: hidden;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+/* Згортання: копія тренування з'їжджає вниз, під нею вже видно стартовий екран */
+.slide-ghost.is-down { z-index: 11; animation: slide-down 0.25s ease-in forwards; }
+
+/* Розгортання: копія попереднього екрана лежить під тренуванням, що виїжджає */
+.slide-ghost.is-under { z-index: 0; }
+
+/* Копія стоїть на місці й не отримує кнопок тренування, які вже з'явились у справжній смузі */
+body .is-under #view,
+body .is-under .topbar { animation: none; }
+body .is-under .minimize-btn,
+body .is-under .clock-btn,
+body .is-under .finish-btn { display: none; }
+body .is-under .topbar h1 { font-size: 20px; }
+
+/* Усередині копії верхня смуга стоїть угорі й не займає місця в потоці */
+.slide-ghost .topbar {
+  position: sticky;
+  top: 0;
+  margin-bottom: calc(-1 * (var(--topbar-h) + var(--safe-top)));
+}
+
+/* Кнопки тренування в копії видно, хоча під нею вже інший екран */
+body .is-down .minimize-btn,
+body .is-down .clock-btn { display: flex; }
+body .is-down .finish-btn { display: block; }
+body .is-down .topbar h1 { font-size: 17px; }
+
+@keyframes slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100vh); }
+}
 @keyframes slide-up { from { transform: translateY(100vh); } }
 
 /* ===== Вміст екрана ===== */

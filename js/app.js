@@ -1,5 +1,5 @@
 import { db, getProfile, getActiveWorkout, deleteWorkout, requestPersistentStorage } from './db.js';
-import { render as renderWorkout } from './views/workout.js';
+import { render as renderWorkout, workoutState } from './views/workout.js';
 import { render as renderHistory } from './views/history.js';
 import { render as renderExercises } from './views/exercises.js';
 import { render as renderRecords } from './views/records.js';
@@ -28,7 +28,7 @@ const title = document.getElementById('title');
 const back = document.getElementById('back');
 const barTime = document.getElementById('workout-bar-time');
 
-// Активне тренування, поки воно згорнуте (тобто відкрито інший екран), або null
+// Активне тренування (для смужки згорнутого тренування) або null
 let barWorkout = null;
 
 // '#/history/7' → name = 'history', param = '7'
@@ -51,9 +51,14 @@ async function navigate() {
   const active = await getActiveWorkout();
   setClockVisible(Boolean(active));
 
-  // На всіх екранах, крім самого тренування, воно показується згорнутою смужкою внизу
-  barWorkout = name === 'workout' ? null : active ?? null;
-  document.body.classList.toggle('has-workout-bar', Boolean(barWorkout));
+  // Пішли з екрана тренування на інший: тренування вважаємо згорнутим.
+  // Відкрили вибір вправ: навпаки, розгорнутим.
+  if (name !== 'workout') workoutState.minimized = Boolean(active);
+  else if (param === 'add') workoutState.minimized = false;
+
+  // Згорнуте тренування показується смужкою над нижньою навігацією
+  barWorkout = active ?? null;
+  document.body.classList.toggle('has-workout-bar', Boolean(active) && workoutState.minimized);
   updateBar();
 
   // Під час онбордингу ховаємо нижню навігацію (стиль у styles.css)
@@ -82,27 +87,41 @@ function updateBar() {
 }
 setInterval(updateBar, 1000);
 
-// Стрілка вниз у верхній смузі: екран тренування з'їжджає вниз, і відкривається «Головна»
+// Робить нерухому копію поточного екрана (верхня смуга і вміст) на час анімації.
+// kind: 'is-down' — копія з'їжджає вниз; 'is-under' — лежить під екраном, що виїжджає.
+function addGhost(kind, ms) {
+  const ghost = document.createElement('div');
+  ghost.className = `slide-ghost ${kind}`;
+  ghost.append(document.querySelector('.topbar').cloneNode(true), view.cloneNode(true));
+  document.body.append(ghost);
+  ghost.scrollTop = window.scrollY; // копія прокручена так само, як був екран
+  setTimeout(() => ghost.remove(), ms);
+}
+
+// Стрілка вниз у верхній смузі. Лишаємось на вкладці «Тренування», але там одразу малюється
+// стартовий екран зі смужкою внизу, а поверх нього з'їжджає вниз копія екрана тренування.
 document.getElementById('minimize-btn').addEventListener('click', () => {
-  view.classList.add('slide-down');
-  setTimeout(() => {
-    view.innerHTML = '';
-    view.classList.remove('slide-down');
-    location.hash = '#/home';
-  }, 250); // стільки триває анімація slide-down у styles.css
+  addGhost('is-down', 250); // стільки триває анімація slide-down у styles.css
+  workoutState.minimized = true;
+  navigate();
 });
 
-// Стрілка вгору на смужці: тренування виїжджає знизу
+// Стрілка вгору на смужці: тренування виїжджає знизу поверх копії екрана, що був до цього
 document.getElementById('workout-expand').addEventListener('click', () => {
-  view.classList.add('slide-up');
-  setTimeout(() => view.classList.remove('slide-up'), 300);
-  location.hash = '#/workout';
+  addGhost('is-under', 300);
+  workoutState.minimized = false;
+  document.body.classList.add('slide-up');
+  setTimeout(() => document.body.classList.remove('slide-up'), 300);
+  // Якщо ми вже на вкладці «Тренування», адреса не зміниться, тому перемальовуємо самі
+  if (parseHash().name === 'workout') navigate();
+  else location.hash = '#/workout';
 });
 
 // Смітник на смужці
 document.getElementById('workout-discard').addEventListener('click', async () => {
   if (!confirm('Скасувати тренування? Усі його підходи буде видалено.')) return;
   await deleteWorkout(barWorkout.id);
+  workoutState.minimized = false;
   navigate(); // перемальовуємо екран: смужка й таймер зникають
 });
 

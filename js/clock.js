@@ -1,8 +1,10 @@
-// Таймер відпочинку і секундомір у верхній смузі. Іконку видно, лише поки триває тренування.
+// Таймер відпочинку і секундомір. Іконку у верхній смузі видно лише на екрані активного
+// тренування (стиль у styles.css); на інших екранах відлік іде далі, але його не видно.
 // Час рахуємо від збережених міток (Date.now), а не додаємо по секунді:
 // так він лишається правильним, навіть якщо телефон на якийсь час «заснув».
 
-const STEP = 15;                // кнопки «−15 с» і «+15 с»
+const STEP = 15;                // кнопки «−15 с» і «+15 с» під час відліку
+const ITEM = 40;                // висота одного числа на барабані, px (як у styles.css)
 const RING = 2 * Math.PI * 90;  // довжина кола з радіусом 90 (для кільця прогресу)
 
 const button = document.getElementById('clock-btn');
@@ -16,7 +18,7 @@ let mode = 'timer';     // що показує панель: 'timer' або 'sto
 let timerSetting = 90;  // скільки секунд виставлено на таймері
 let timerTotal = 0;     // повна тривалість поточного відліку, мс (для кільця)
 let timerEndAt = null;  // мітка часу, коли таймер дійде до нуля, або null
-let timerDone = false;  // таймер щойно закінчився: «0:00» блимає біля іконки
+let timerDone = false;  // таймер щойно закінчився: «0:00» кілька секунд блимає біля іконки
 let swStartedAt = null; // мітка часу, від якої йде секундомір, або null, якщо він стоїть
 let swElapsed = 0;      // скільки набігло до паузи, мс
 let audio = null;       // для звукового сигналу
@@ -82,6 +84,7 @@ function tick() {
   if (timerEndAt && Date.now() >= timerEndAt) {
     timerEndAt = null;
     timerDone = true;
+    setTimeout(() => { timerDone = false; }, 5000); // «0:00» блимає 5 секунд і зникає
     beep();
     draw();
   }
@@ -97,12 +100,11 @@ function tick() {
   label.textContent = text;
   label.classList.toggle('is-done', timerDone);
 
-  if (!isOpen || mode !== 'timer') return;
+  if (!isOpen || mode !== 'timer' || !timerEndAt) return;
 
   // У панелі: цифри в центрі та частка кільця, що лишилась (від 1 до 0)
-  const part = timerEndAt ? timerLeft() / timerTotal : 1;
-  panel.querySelector('#clock-big').textContent = formatClock(timerEndAt ? timerSeconds : timerSetting);
-  panel.querySelector('#clock-ring').style.strokeDashoffset = RING * (1 - part);
+  panel.querySelector('#clock-big').textContent = formatClock(timerSeconds);
+  panel.querySelector('#clock-ring').style.strokeDashoffset = RING * (1 - timerLeft() / timerTotal);
 }
 
 // Соті частки секунди міняються надто швидко для tick,
@@ -113,31 +115,77 @@ function frame() {
   if (swStartedAt) frameId = requestAnimationFrame(frame);
 }
 
+// Барабан із числами від 0 до 59. Прокручується пальцем і сам зупиняється рівно на числі.
+function wheelHtml(unit, caption) {
+  let items = '';
+  for (let i = 0; i < 60; i++) items += `<div class="wheel-item">${i}</div>`;
+  return `
+    <div class="wheel-col">
+      <div class="wheel" data-unit="${unit}">${items}</div>
+      <span>${caption}</span>
+    </div>
+  `;
+}
+
+// Таймер до старту: барабани хвилин і секунд
+const wheelsHtml = () => `
+  <div class="wheels">
+    ${wheelHtml('minutes', 'хв')}
+    ${wheelHtml('seconds', 'с')}
+  </div>
+  <button class="btn btn-primary" data-action="timer-start">Старт</button>
+`;
+
+// Таймер іде: кільце, що зменшується
+const ringHtml = () => `
+  <div class="clock-face">
+    <svg viewBox="0 0 200 200">
+      <circle class="clock-track" cx="100" cy="100" r="90"/>
+      <circle class="clock-ring" id="clock-ring" cx="100" cy="100" r="90" stroke-dasharray="${RING}"/>
+    </svg>
+    <p class="clock-big" id="clock-big"></p>
+  </div>
+  <div class="row">
+    <button class="btn" data-action="timer-add" data-seconds="${-STEP}">−${STEP} с</button>
+    <button class="btn" data-action="timer-add" data-seconds="${STEP}">+${STEP} с</button>
+  </div>
+  <button class="btn btn-danger mt" data-action="timer-stop">Стоп</button>
+`;
+
+// Ставить барабани на виставлений час і стежить за прокручуванням
+function setupWheels() {
+  const [minutes, seconds] = panel.querySelectorAll('.wheel');
+  if (!minutes) return; // зараз показано не барабани
+
+  minutes.scrollTop = Math.floor(timerSetting / 60) * ITEM;
+  seconds.scrollTop = (timerSetting % 60) * ITEM;
+
+  const read = (wheel) => Math.round(wheel.scrollTop / ITEM);
+  for (const wheel of [minutes, seconds]) {
+    wheel.addEventListener('scroll', () => {
+      timerSetting = read(minutes) * 60 + read(seconds);
+    });
+    // Тап по числу теж вибирає його
+    wheel.addEventListener('click', (event) => {
+      const item = event.target.closest('.wheel-item');
+      if (item) wheel.scrollTo({ top: Number(item.textContent) * ITEM, behavior: 'smooth' });
+    });
+  }
+}
+
 function draw() {
-  const controls = mode === 'timer'
-    ? `
-      <div class="clock-face">
-        <svg viewBox="0 0 200 200">
-          <circle class="clock-track" cx="100" cy="100" r="90"/>
-          <circle class="clock-ring" id="clock-ring" cx="100" cy="100" r="90" stroke-dasharray="${RING}"/>
-        </svg>
-        <p class="clock-big" id="clock-big"></p>
-      </div>
-      <div class="row">
-        <button class="btn" data-action="timer-add" data-seconds="${-STEP}">−${STEP} с</button>
-        <button class="btn" data-action="timer-add" data-seconds="${STEP}">+${STEP} с</button>
-      </div>
-      ${timerEndAt
-        ? '<button class="btn btn-danger mt" data-action="timer-stop">Стоп</button>'
-        : '<button class="btn btn-primary mt" data-action="timer-start">Старт</button>'}
-    `
-    : `
+  let controls;
+  if (mode === 'stopwatch') {
+    controls = `
       <p class="clock-stopwatch" id="clock-big"></p>
       <div class="row">
         <button class="btn btn-primary" data-action="sw-toggle">${swStartedAt ? 'Пауза' : 'Старт'}</button>
         <button class="btn" data-action="sw-reset">Скинути</button>
       </div>
     `;
+  } else {
+    controls = timerEndAt ? ringHtml() : wheelsHtml();
+  }
 
   panel.innerHTML = `
     <div class="chips">
@@ -152,6 +200,7 @@ function draw() {
     </div>
     ${controls}
   `;
+  setupWheels();
   tick();
   cancelAnimationFrame(frameId);
   frame();
@@ -176,17 +225,14 @@ panel.addEventListener('click', (event) => {
 
   switch (action.dataset.action) {
     case 'timer-add': {
+      // Зсуваємо кінець відліку, що вже йде
       const seconds = Number(action.dataset.seconds);
-      if (timerEndAt) {
-        // Таймер уже йде: зсуваємо кінець відліку
-        timerEndAt += seconds * 1000;
-        timerTotal += seconds * 1000;
-      } else {
-        timerSetting = Math.max(STEP, timerSetting + seconds);
-      }
+      timerEndAt += seconds * 1000;
+      timerTotal += seconds * 1000;
       break;
     }
     case 'timer-start':
+      if (timerSetting === 0) return; // на барабанах 0 хв 0 с: запускати нічого
       // Звук дозволено вмикати лише у відповідь на натискання, тому готуємо його тут
       audio ??= new AudioContext();
       audio.resume();
@@ -220,6 +266,7 @@ let dragStartAt = 0;   // і коли це було
 let dragged = false;   // палець справді тягнув панель, а не просто натиснув кнопку
 
 sheet.addEventListener('pointerdown', (event) => {
+  if (event.target.closest('.wheel')) return; // барабан прокручується сам, панель при цьому не тягнемо
   dragStartY = event.clientY;
   dragStartAt = event.timeStamp;
   dragged = false;

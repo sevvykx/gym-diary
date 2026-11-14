@@ -20,6 +20,10 @@ const finishBtn = document.getElementById('finish-btn');
 // Раз на секунду оновлює тривалість тренування
 let durationTimer = null;
 
+// Чи згорнуте активне тренування. Тоді вкладка «Тренування» показує стартовий екран,
+// а саме тренування висить смужкою над нижньою навігацією (нею керує js/app.js).
+export const workoutState = { minimized: false };
+
 export async function render(el, param) {
   const workout = await getActiveWorkout();
   // Тренування починається і скасовується на цьому екрані: одразу показуємо чи ховаємо таймер
@@ -32,28 +36,63 @@ export async function render(el, param) {
       return;
     }
     await renderPicker(el, workout);
-  } else if (workout) {
+  } else if (workout && !workoutState.minimized) {
     await renderActive(el, workout);
   } else {
-    await renderStart(el);
+    await renderStart(el, workout);
   }
 }
 
-// ===== Немає активного тренування =====
+// ===== Стартовий екран: тренування немає або воно згорнуте =====
 
-async function renderStart(el) {
+// current: згорнуте тренування, якщо воно є
+async function renderStart(el, current) {
   el.innerHTML = `
     <div class="empty">
-      <h2>Немає активного тренування</h2>
-      <p>Почни нове, і тут з'являться вправи та підходи.</p>
+      <h2>${current ? 'Тренування згорнуте' : 'Немає активного тренування'}</h2>
+      <p>${current
+        ? 'Воно триває далі. Розгорни його стрілкою на смужці внизу.'
+        : "Почни нове, і тут з'являться вправи та підходи."}</p>
       <button class="btn btn-primary btn-big" id="start-workout">Почати тренування</button>
     </div>
+
+    <dialog class="dialog" id="in-progress">
+      <h2>Тренування вже триває</h2>
+      <p class="muted">Продовжити його чи почати нове? Якщо почати нове, поточне буде видалено разом з підходами.</p>
+      <button class="btn btn-primary" data-choice="continue">Продовжити тренування</button>
+      <button class="btn btn-danger mt" data-choice="new">Почати нове</button>
+      <button class="btn mt" data-choice="cancel">Скасувати</button>
+    </dialog>
   `;
 
-  el.querySelector('#start-workout').addEventListener('click', async () => {
+  const dialog = el.querySelector('#in-progress');
+  // Стрілка «розгорнути» на смужці внизу: вона вміє показати тренування з анімацією
+  const expand = () => document.getElementById('workout-expand').click();
+
+  const startNew = async () => {
     drafts.clear();
     await db.workouts.add({ startedAt: Date.now(), finishedAt: null, exerciseIds: [] });
+  };
+
+  el.querySelector('#start-workout').addEventListener('click', async () => {
+    if (current) {
+      dialog.showModal();
+      return;
+    }
+    await startNew();
     render(el);
+  });
+
+  dialog.addEventListener('click', async (event) => {
+    const choice = event.target.dataset.choice;
+    if (!choice) return;
+    dialog.close();
+
+    if (choice === 'new') {
+      await deleteWorkout(current.id);
+      await startNew();
+    }
+    if (choice !== 'cancel') expand();
   });
 }
 
