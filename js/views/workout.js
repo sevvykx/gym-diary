@@ -3,12 +3,8 @@ import { MUSCLE_GROUPS } from '../seed.js';
 import { setClockVisible } from '../clock.js';
 import { escapeHtml, formatDate, formatDaysAgo, formatElapsed, formatSet, formatWeight } from '../utils.js';
 
-const WEIGHT_STEP = 2.5;
-const DEFAULT_DRAFT = { weight: 20, reps: 10 };
-
-// Що зараз стоїть у полях «вага» і «повтори» кожної вправи: exerciseId → { weight, reps }.
-// Тримаємо окремо, щоб значення не скидалися, коли екран перемальовується.
-const drafts = new Map();
+// Підхід для вправи, якої ще не було в минулих тренуваннях
+const DEFAULT_SET = { weight: 20, reps: 10 };
 
 // Перша з щойно доданих вправ: після перемальовування прокрутимо до неї
 let justAddedId = null;
@@ -69,10 +65,7 @@ async function renderStart(el, current) {
   // Стрілка «розгорнути» на смужці внизу: вона вміє показати тренування з анімацією
   const expand = () => document.getElementById('workout-expand').click();
 
-  const startNew = async () => {
-    drafts.clear();
-    await db.workouts.add({ startedAt: Date.now(), finishedAt: null, exerciseIds: [] });
-  };
+  const startNew = () => db.workouts.add({ startedAt: Date.now(), finishedAt: null, exerciseIds: [] });
 
   el.querySelector('#start-workout').addEventListener('click', async () => {
     if (current) {
@@ -107,15 +100,13 @@ async function renderActive(el, workout) {
     workout.exerciseIds.map((id) => getLastPerformance(id, workout.id)),
   );
   const isEmpty = workout.exerciseIds.length === 0;
-  // Об'єм: сума «вага × повтори» за всі підходи
-  const volume = sets.reduce((sum, set) => sum + set.weight * set.reps, 0);
 
   el.innerHTML = `
     <div id="workout">
       <div class="workout-stats">
         <div><span>Тривалість</span><strong id="workout-duration">${formatElapsed(Date.now() - workout.startedAt)}</strong></div>
-        <div><span>Об'єм</span><strong>${formatWeight(volume)} кг</strong></div>
-        <div><span>Підходи</span><strong>${sets.length}</strong></div>
+        <div><span>Об'єм</span><strong id="workout-volume"></strong></div>
+        <div><span>Підходи</span><strong id="workout-sets"></strong></div>
       </div>
       ${isEmpty ? '<p class="muted">Додай першу вправу, щоб записувати підходи.</p>' : ''}
       ${workout.exerciseIds.map((id, i) => exerciseHtml(id, exercises[i], setsOf(id), lastTimes[i])).join('')}
@@ -125,6 +116,15 @@ async function renderActive(el, workout) {
   `;
 
   const root = el.querySelector('#workout');
+
+  // Об'єм і кількість підходів рахуємо лише з виконаних (відмічених галочкою)
+  const updateStats = () => {
+    const done = sets.filter((s) => s.done);
+    const volume = done.reduce((sum, set) => sum + set.weight * set.reps, 0);
+    root.querySelector('#workout-volume').textContent = `${formatWeight(volume)} кг`;
+    root.querySelector('#workout-sets').textContent = done.length;
+  };
+  updateStats();
 
   // Тривалість іде щосекунди. Коли екран змінився і лічильника вже немає, зупиняємось.
   clearInterval(durationTimer);
@@ -139,23 +139,35 @@ async function renderActive(el, workout) {
 
   document.body.classList.add('workout-open');
   finishBtn.onclick = async () => {
-    if (sets.length === 0) {
-      if (!confirm('У тренуванні немає жодного підходу. Видалити його?')) return;
+    const undone = sets.filter((s) => !s.done);
+
+    if (undone.length === sets.length) {
+      if (!confirm('У тренуванні немає жодного виконаного підходу. Видалити його?')) return;
       await deleteWorkout(workout.id);
-      drafts.clear();
       render(el);
-    } else {
-      if (!confirm('Завершити тренування?')) return;
-      await db.workouts.update(workout.id, { finishedAt: Date.now() });
-      drafts.clear();
-      location.hash = `#/history/${workout.id}`; // одразу показуємо підсумок
+      return;
     }
+
+    const question = undone.length > 0
+      ? `Завершити тренування? Невідмічені підходи (${undone.length}) не збережуться.`
+      : 'Завершити тренування?';
+    if (!confirm(question)) return;
+
+    // У завершеному тренуванні лишаються тільки виконані підходи
+    await db.transaction('rw', db.workouts, db.sets, async () => {
+      await db.sets.bulkDelete(undone.map((s) => s.id));
+      await db.workouts.update(workout.id, { finishedAt: Date.now() });
+    });
+    location.hash = `#/history/${workout.id}`; // одразу показуємо підсумок
   };
 
   if (justAddedId) {
     root.querySelector(`[data-exercise="${justAddedId}"]`)?.scrollIntoView({ block: 'center' });
     justAddedId = null;
   }
+
+  // Підхід, якому належить рядок таблиці з цим елементом
+  const setOf = (node) => sets.find((s) => s.id === Number(node.closest('[data-set]').dataset.set));
 
   // Один обробник на всі кнопки: що робити, каже атрибут data-action
   root.addEventListener('click', async (event) => {
@@ -164,73 +176,69 @@ async function renderActive(el, workout) {
 
     const card = btn.closest('[data-exercise]');
     const exerciseId = card ? Number(card.dataset.exercise) : null;
-    const draft = drafts.get(exerciseId);
 
     switch (btn.dataset.action) {
-      case 'step': {
-        const field = btn.dataset.field;
-        readInputs(card, draft);
-        draft[field] = normalize(field, draft[field] + Number(btn.dataset.delta));
-        writeInputs(card, draft);
-        return; // змінилося лише число в полі, перемальовувати екран не треба
+      case 'toggle-set': {
+        const set = setOf(btn);
+        set.done = !set.done;
+        if (set.done) set.createdAt = Date.now(); // час, коли підхід справді зроблено
+        await db.sets.update(set.id, { done: set.done, createdAt: set.createdAt });
+        btn.closest('.set-row').classList.toggle('is-done', set.done);
+        btn.setAttribute('aria-pressed', set.done);
+        updateStats();
+        return; // змінився лише один рядок, перемальовувати екран не треба
       }
 
-      case 'use-set': // тап по підходу з минулого разу підставляє його в поля
-        draft.weight = Number(btn.dataset.weight);
-        draft.reps = Number(btn.dataset.reps);
-        writeInputs(card, draft);
-        return;
-
-      case 'add-set':
-        readInputs(card, draft);
-        await addSet(workout.id, exerciseId, draft);
-        break;
-
-      case 'repeat-set': {
+      case 'add-set': {
+        // Новий рядок копіює попередній; якщо рядків ще немає, бере минулий раз
         const exerciseSets = setsOf(exerciseId);
-        const last = exerciseSets[exerciseSets.length - 1];
-        drafts.set(exerciseId, { weight: last.weight, reps: last.reps });
-        await addSet(workout.id, exerciseId, last);
+        const lastTime = lastTimes[workout.exerciseIds.indexOf(exerciseId)];
+        const source = exerciseSets[exerciseSets.length - 1] ?? lastTime?.sets[0] ?? DEFAULT_SET;
+        await db.sets.add(newSet(workout.id, exerciseId, source));
         break;
       }
 
       case 'delete-set': {
-        const set = sets.find((s) => s.id === Number(btn.dataset.set));
-        if (!confirm(`Видалити підхід «${formatSet(set)}»?`)) return;
+        const set = setOf(btn);
+        if (!confirm(`Видалити підхід ${btn.textContent.trim()} («${formatSet(set)}»)?`)) return;
         await db.sets.delete(set.id);
         break;
       }
 
       case 'remove-exercise': {
-        const count = setsOf(exerciseId).length;
-        if (count > 0 && !confirm(`Прибрати вправу разом із записаними підходами (${count})?`)) return;
+        const count = setsOf(exerciseId).filter((s) => s.done).length;
+        if (count > 0 && !confirm(`Прибрати вправу разом із виконаними підходами (${count})?`)) return;
         await db.transaction('rw', db.workouts, db.sets, async () => {
           await db.sets.bulkDelete(setsOf(exerciseId).map((s) => s.id));
           await db.workouts.update(workout.id, {
             exerciseIds: workout.exerciseIds.filter((id) => id !== exerciseId),
           });
         });
-        drafts.delete(exerciseId);
         break;
       }
 
       case 'cancel':
         if (!confirm('Скасувати тренування? Усі його підходи буде видалено.')) return;
         await deleteWorkout(workout.id);
-        drafts.clear();
         break;
     }
 
     render(el);
   });
 
-  // Число ввели з клавіатури: перевіряємо його і показуємо в охайному вигляді
-  root.addEventListener('change', (event) => {
-    const card = event.target.closest('[data-exercise]');
-    if (!card || !event.target.matches('input[data-field]')) return;
-    const draft = drafts.get(Number(card.dataset.exercise));
-    readInputs(card, draft);
-    writeInputs(card, draft);
+  // У полі змінили вагу чи повтори: перевіряємо число, зберігаємо і показуємо в охайному вигляді.
+  // Екран не перемальовуємо, щоб не збити курсор у сусідньому полі.
+  root.addEventListener('change', async (event) => {
+    const input = event.target;
+    if (!input.matches('input[data-field]')) return;
+
+    const set = setOf(input);
+    const field = input.dataset.field;
+    const value = parseFloat(input.value.replace(',', '.'));
+    if (!Number.isNaN(value)) set[field] = normalize(field, value); // нечислове значення ігноруємо
+    input.value = field === 'weight' ? formatWeight(set.weight) : set.reps;
+    updateStats();
+    await db.sets.update(set.id, { [field]: set[field] });
   });
 
   // Тап по полю виділяє число, тож нове значення одразу замінює старе
@@ -239,17 +247,8 @@ async function renderActive(el, workout) {
   });
 }
 
-// Картка однієї вправи: записані підходи і поля для нового
+// Картка однієї вправи: таблиця підходів, які можна відмітити виконаними
 function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime) {
-  const last = exerciseSets[exerciseSets.length - 1];
-
-  // Початкові значення полів: останній підхід сьогодні, інакше перший підхід минулого разу
-  if (!drafts.has(exerciseId)) {
-    const source = last ?? lastTime?.sets[0] ?? DEFAULT_DRAFT;
-    drafts.set(exerciseId, { weight: source.weight, reps: source.reps });
-  }
-  const draft = drafts.get(exerciseId);
-
   return `
     <section class="card" data-exercise="${exerciseId}">
       <div class="exercise-head">
@@ -257,76 +256,38 @@ function exerciseHtml(exerciseId, exercise, exerciseSets, lastTime) {
         <button class="icon-btn" data-action="remove-exercise" aria-label="Прибрати вправу">×</button>
       </div>
 
-      ${lastTimeHtml(lastTime)}
+      <p class="muted">${lastTime
+        ? `Минулого разу: ${formatDate(lastTime.date)}, ${formatDaysAgo(lastTime.date)}`
+        : 'Цієї вправи ще не було в минулих тренуваннях.'}</p>
 
-      <ol class="sets">
-        ${exerciseSets.map((set, i) => `
-          <li>
-            <span class="set-num">${i + 1}</span>
-            <span class="set-value">${formatSet(set)}</span>
-            <button class="icon-btn" data-action="delete-set" data-set="${set.id}" aria-label="Видалити підхід">×</button>
-          </li>
-        `).join('')}
-      </ol>
-
-      <div class="steppers">
-        ${stepperHtml('Вага, кг', 'weight', WEIGHT_STEP, formatWeight(draft.weight), 'decimal')}
-        ${stepperHtml('Повтори', 'reps', 1, draft.reps, 'numeric')}
+      <div class="set-row set-head">
+        <span>№</span><span>Минуле</span><span>Кг</span><span>Повтори</span><span></span>
       </div>
+      ${exerciseSets.map((set, i) => setRowHtml(set, i, lastTime?.sets[i])).join('')}
 
-      <button class="btn btn-primary" data-action="add-set">Додати підхід</button>
-      ${last ? `<button class="btn mt" data-action="repeat-set">↻ Повторити: ${formatSet(last)}</button>` : ''}
+      <button class="btn mt" data-action="add-set">+ Додати підхід</button>
     </section>
   `;
 }
 
-// Блок «Минулого разу»: дата і підходи попереднього тренування з цією вправою
-function lastTimeHtml(lastTime) {
-  if (!lastTime) return '<p class="muted">Цієї вправи ще не було в минулих тренуваннях.</p>';
-
+// Рядок таблиці: номер (тап видаляє підхід), той самий підхід минулого разу, вага, повтори, галочка
+function setRowHtml(set, index, previous) {
   return `
-    <div class="last-time">
-      <span class="caption">Минулого разу · ${formatDate(lastTime.date)}, ${formatDaysAgo(lastTime.date)}</span>
-      <div class="last-sets">
-        ${lastTime.sets.map((set) => `
-          <button class="last-set" data-action="use-set" data-weight="${set.weight}" data-reps="${set.reps}">
-            ${formatSet(set)}
-          </button>
-        `).join('')}
-      </div>
+    <div class="set-row ${set.done ? 'is-done' : ''}" data-set="${set.id}">
+      <button class="row-num" data-action="delete-set" aria-label="Видалити підхід ${index + 1}">${index + 1}</button>
+      <span class="set-prev">${previous ? formatSet(previous) : '—'}</span>
+      <input data-field="weight" type="text" inputmode="decimal" value="${formatWeight(set.weight)}" aria-label="Вага, кг">
+      <input data-field="reps" type="text" inputmode="numeric" value="${set.reps}" aria-label="Повтори">
+      <button class="set-check" data-action="toggle-set" aria-label="Підхід виконано" aria-pressed="${set.done}">
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l5 5 9-11"/></svg>
+      </button>
     </div>
   `;
 }
 
-// Поле з числом і кнопками − та + з боків
-function stepperHtml(label, field, step, value, inputmode) {
-  return `
-    <div>
-      <span class="caption">${label}</span>
-      <div class="stepper">
-        <button data-action="step" data-field="${field}" data-delta="${-step}" aria-label="Менше">−</button>
-        <input data-field="${field}" type="text" inputmode="${inputmode}" value="${value}" aria-label="${label}">
-        <button data-action="step" data-field="${field}" data-delta="${step}" aria-label="Більше">+</button>
-      </div>
-    </div>
-  `;
-}
-
-function addSet(workoutId, exerciseId, { weight, reps }) {
-  return db.sets.add({ workoutId, exerciseId, weight, reps, done: true, createdAt: Date.now() });
-}
-
-// Забирає числа з полів картки в draft (нечислове значення ігнорує)
-function readInputs(card, draft) {
-  card.querySelectorAll('input[data-field]').forEach((input) => {
-    const value = parseFloat(input.value.replace(',', '.'));
-    if (!Number.isNaN(value)) draft[input.dataset.field] = normalize(input.dataset.field, value);
-  });
-}
-
-function writeInputs(card, draft) {
-  card.querySelector('input[data-field="weight"]').value = formatWeight(draft.weight);
-  card.querySelector('input[data-field="reps"]').value = draft.reps;
+// Новий, ще не виконаний підхід із тими самими вагою і повторами, що в source
+function newSet(workoutId, exerciseId, { weight, reps }) {
+  return { workoutId, exerciseId, weight, reps, done: false, createdAt: Date.now() };
 }
 
 // Вага: від 0 до 999 кг; повтори: ціле число від 1 до 999
@@ -376,6 +337,12 @@ async function renderPicker(el, workout) {
   });
 
   addBtn.addEventListener('click', async () => {
+    // Кожна нова вправа одразу отримує рядки підходів: ті самі, що минулого разу, або один типовий
+    for (const exerciseId of picked) {
+      const lastTime = await getLastPerformance(exerciseId, workout.id);
+      const source = lastTime ? lastTime.sets : [DEFAULT_SET];
+      await db.sets.bulkAdd(source.map((set) => newSet(workout.id, exerciseId, set)));
+    }
     await db.workouts.update(workout.id, { exerciseIds: [...workout.exerciseIds, ...picked] });
     justAddedId = picked[0];
     location.replace('#/workout'); // replace, щоб «назад» не повертало на цей список
